@@ -1,0 +1,157 @@
+// Tab 2 — משפטי מפתח (GetQuoteList)
+const TabArticles = (() => {
+
+  async function render(container) {
+    container.innerHTML = `
+      <div class="list-header">משפטי מפתח</div>
+      <div id="articles-list" class="content-list">
+        ${skeletonHTML(5)}
+      </div>
+    `;
+
+    try {
+      const res  = await API.getKeyPhrases(0);
+      const list = document.getElementById('articles-list');
+      if (!list) return;
+
+      const items = extractList(res);
+      console.log(`[KeyPhrases] total=${items.length}`);
+      items.forEach((item, i) => console.log(`  [${i}] id=${item.id} title=${item.title}`));
+
+      list.innerHTML = '';
+
+      if (items.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">🔑</div>
+            <div class="empty-state-title">אין משפטי מפתח</div>
+          </div>`;
+        return;
+      }
+
+      items.forEach(item => list.appendChild(buildCard(item)));
+
+    } catch (err) {
+      console.error('loadKeyPhrases:', err);
+      const list = document.getElementById('articles-list');
+      if (list) list.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">⚠️</div>
+          <div class="empty-state-title">שגיאה בטעינה</div>
+        </div>`;
+    }
+  }
+
+  function extractList(res) {
+    if (!res) return [];
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res.list)) return res.list;
+    if (res.data && Array.isArray(res.data.list)) return res.data.list;
+    if (Array.isArray(res.data)) return res.data;
+    // list may be a JSON string
+    if (res.data && typeof res.data.list === 'string') {
+      try { return JSON.parse(res.data.list); } catch {}
+    }
+    console.log('[KeyPhrases] extractList found nothing. res keys:', Object.keys(res));
+    return [];
+  }
+
+  function buildCard(item) {
+    const el = document.createElement('div');
+    el.className = 'keyphrase-card';
+
+    const title = decodeUnicode(item.title || 'ללא כותרת');
+
+    el.innerHTML = `
+      <div class="keyphrase-card-inner">
+        <div class="keyphrase-title">${escHtml(title)}</div>
+        <button class="keyphrase-btn">לתוכן</button>
+      </div>
+    `;
+
+    el.querySelector('.keyphrase-btn').addEventListener('click', () => {
+      openQuoteModal(item.id, title);
+    });
+
+    return el;
+  }
+
+  async function openQuoteModal(quoteId, title) {
+    const existing = document.getElementById('content-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'content-modal';
+    modal.style.cssText = `
+      position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;
+      display:flex;align-items:flex-start;justify-content:center;
+      overflow-y:auto;padding:20px;
+    `;
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:16px;max-width:700px;width:100%;margin:auto;overflow:hidden;box-shadow:var(--shadow-lg)">
+        <div style="background:var(--primary);padding:18px 20px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:18px;font-weight:700;color:#fff">${escHtml(title)}</div>
+          <button id="content-modal-close" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+        </div>
+        <div id="content-modal-body" style="padding:24px;direction:rtl;text-align:right;min-height:80px;display:flex;align-items:center;justify-content:center;">
+          <div style="color:#888;font-size:14px;">טוען...</div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.querySelector('#content-modal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    try {
+      const res  = await API.getQuoteDetail(quoteId);
+      const body = document.getElementById('content-modal-body');
+      if (!body) return;
+
+      console.log('[QuoteDetail] raw response:', JSON.stringify(res).substring(0, 400));
+
+      // GetQuoteDetail response may nest detail under data or be flat
+      const detail = (res && res.detail)                  ? res.detail
+                   : (res && res.data && res.data.detail) ? res.data.detail
+                   : (res && res.data)                    ? res.data
+                   : res;
+
+      if (!detail) { body.innerHTML = '<div style="color:#888;">אין תוכן</div>'; return; }
+
+      const desc     = detail.description || detail.quotes || detail.text || '';
+      const videoUrl = detail.video_url   || '';
+      const audioUrl = detail.audio_url   || '';
+
+      let html = '';
+      if (videoUrl) html += `<video controls style="width:100%;border-radius:8px;margin-bottom:16px;" src="${escAttr(videoUrl)}"></video>`;
+      if (audioUrl && !videoUrl) html += `<audio controls style="width:100%;margin-bottom:16px;" src="${escAttr(audioUrl)}"></audio>`;
+      if (desc) html += `<div style="font-size:15px;line-height:1.8;">${desc}</div>`;
+      if (!html) html = '<div style="color:#888;">אין תוכן</div>';
+
+      body.style.display = 'block';
+      body.innerHTML = html;
+    } catch (err) {
+      console.error('openQuoteModal:', err);
+      const body = document.getElementById('content-modal-body');
+      if (body) body.innerHTML = '<div style="color:#c00;">שגיאה בטעינת התוכן</div>';
+    }
+  }
+
+  function decodeUnicode(str) {
+    if (!str) return '';
+    return String(str).replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+  }
+
+  function skeletonHTML(n) {
+    return Array(n).fill(`<div class="skeleton keyphrase-skeleton"></div>`).join('');
+  }
+
+  function escAttr(s) { return String(s).replace(/"/g, '&quot;'); }
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  return { render };
+})();

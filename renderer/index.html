@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>דיוק</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+
+</head>
+<body>
+
+  <!-- ── Splash / Loading ───────────────────────────────────── -->
+  <div id="splash" class="splash">
+    <div class="splash-logo">
+      <div class="splash-title">דיוק</div>
+      <div class="splash-subtitle">חשיבה קוגניטיבית</div>
+    </div>
+    <div class="spinner"></div>
+  </div>
+
+  <!-- ── App Root ───────────────────────────────────────────── -->
+  <div id="app" class="hidden">
+
+    <!-- Login Screen -->
+    <div id="screen-login" class="screen hidden"></div>
+
+    <!-- Main App (Tabs) -->
+    <div id="screen-main" class="screen hidden">
+      <!-- Header inserted here by app.js -->
+
+      <!-- Top Tab Bar -->
+      <nav class="tab-bar">
+        <button class="tab-btn" data-tab="daily">
+          <span class="tab-icon">☀️</span>
+          <span class="tab-label">מסר יומי</span>
+        </button>
+        <button class="tab-btn" data-tab="articles">
+          <span class="tab-icon">📖</span>
+          <span class="tab-label">משפטי מפתח</span>
+        </button>
+        <button class="tab-btn" data-tab="quotes">
+          <span class="tab-icon">💬</span>
+          <span class="tab-label">צ'אט</span>
+        </button>
+        <button class="tab-btn" data-tab="guides">
+          <span class="tab-icon">🧭</span>
+          <span class="tab-label">מחשבונים</span>
+        </button>
+        <button class="tab-btn" data-tab="premium">
+          <span class="tab-icon">⭐</span>
+          <span class="tab-label">מנויים</span>
+        </button>
+      </nav>
+
+      <!-- Tab Content Area -->
+      <div id="tab-content" class="tab-content">
+        <div id="tab-daily"    class="tab-pane hidden"></div>
+        <div id="tab-articles" class="tab-pane hidden"></div>
+        <div id="tab-quotes"   class="tab-pane hidden"></div>
+        <div id="tab-guides"   class="tab-pane hidden"></div>
+        <div id="tab-premium"  class="tab-pane hidden"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Scripts (order matters) -->
+  <script src="js/store.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/screens/login.js"></script>
+  <script src="js/screens/tab-daily.js"></script>
+  <script src="js/screens/tab-articles.js"></script>
+  <script src="js/screens/tab-quotes.js"></script>
+  <script src="js/screens/tab-guides.js"></script>
+  <script src="js/screens/tab-premium.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

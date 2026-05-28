@@ -1,0 +1,35 @@
+======================================================
+  DIUK WINDOWS APP — SETUP INSTRUCTIONS
+======================================================
+
+STEP 1 — Install Node.js
+  Download from:  https://nodejs.org/en/download
+  Choose:  "Windows Installer (.msi)" → LTS version (22.x)
+  Run the installer, click Next all the way through.
+
+STEP 2 — Open a terminal in this folder
+  Right-click inside the folder C:\Users\ilanh\DIUK\diuk-windows\
+  Select "Open in Terminal" (or open PowerShell and cd to this folder)
+
+STEP 3 — Install dependencies
+  Run:  npm install
+
+STEP 4 — Run the app
+  Run:  npm start
+
+STEP 5 — Enable Firebase phone auth (one-time setup)
+  The app uses Firebase for SMS login verification.
+  You (or your Firebase admin) must:
+    a) Go to: https://console.firebase.google.com → Project: dyuk-app
+    b) Authentication → Sign-in method → Phone → Enable
+    c) Authentication → Settings → Authorized domains
+    d) Click "Add domain" → type:  localhost  → Add
+
+  Without step 5 the OTP login won't work, but "Guest" login will still work.
+
+STEP 6 — Build an .exe installer (after testing)
+  Run:  npm run build
+  Output will be in:  diuk-windows\dist\
+  The installer is:   Diuk Setup 1.0.0.exe
+
+======================================================
