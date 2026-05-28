@@ -169,7 +169,7 @@ ipcMain.handle('api:post', async (_e, action, extra, token, uid, udidDevice) => 
 
 // ── IPC: persistent key-value store ──────────────────────────────────────────
 ipcMain.handle('store:get',    (_e, key)        => store.get(key));
-ipcMain.handle('store:set',    (_e, key, value) => { store.set(key, value); });
+ipcMain.handle('store:set',    (_e, key, value) => { store.set(key, value); return true; });
 ipcMain.handle('store:delete', (_e, key)        => { store.delete(key); });
 ipcMain.handle('store:clear',  ()               => { store.clear(); });
 ipcMain.handle('store:has',    (_e, key)        => store.has(key));

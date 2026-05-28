@@ -76,6 +76,11 @@ const TabQuotes = (() => {
     try { await API.markAllRead(); } catch {}
     allItems.forEach(item => readIds.add(String(item.id)));
     try { await Store.set('chat_read_ids', [...readIds]); } catch {}
+    try {
+      const res = await API.getBadgeCount();
+      const serverCount = res?.data?.badge_count || res?.data?.count || 0;
+      await Store.set('badge_baseline', serverCount);
+    } catch {}
     document.querySelectorAll('.chat-item--unread').forEach(el => {
       el.classList.remove('chat-item--unread');
       el.querySelector('.chat-unread-dot')?.remove();
