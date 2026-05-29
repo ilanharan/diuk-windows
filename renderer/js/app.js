@@ -252,15 +252,17 @@
       }
 
       body.innerHTML = '';
-      items.forEach(item => {
-        const el = document.createElement('div');
-        el.className = 'drawer-item';
-        const title = escHtml(item.title || item.name || item.menu_name || item.menu_title || '');
-        const icon  = item.icon || item.menu_icon || '📄';
-        el.innerHTML = `<span class="drawer-item-icon">${icon}</span><span>${title}</span>`;
-        el.addEventListener('click', () => { closeDrawer(); openMenuPage(item); });
-        body.appendChild(el);
-      });
+      items
+        .filter(item => !['7', '8'].includes(String(item.menu_type || '')))
+        .forEach(item => {
+          const el = document.createElement('div');
+          el.className = 'drawer-item';
+          const title = escHtml(item.title || item.name || item.menu_name || item.menu_title || '');
+          const icon  = item.icon || item.menu_icon || '📄';
+          el.innerHTML = `<span class="drawer-item-icon">${icon}</span><span>${title}</span>`;
+          el.addEventListener('click', () => { closeDrawer(); openMenuPage(item); });
+          body.appendChild(el);
+        });
     } catch {
       const body = document.getElementById('drawer-body');
       if (body) body.innerHTML = `<div class="drawer-item" style="color:var(--text-muted);">שגיאה בטעינה</div>`;
@@ -282,6 +284,22 @@
 
     if (String(item.menu_type || '') === '11') {
       openGuideBookingScreen(title);
+      return;
+    }
+    if (String(item.menu_type || '') === '2') {
+      openShopScreen(title);
+      return;
+    }
+    if (String(item.menu_type || '') === '5') {
+      openHtmlPageScreen(title, menuId);
+      return;
+    }
+    if (String(item.menu_type || '') === '10') {
+      openSettingsScreen(title);
+      return;
+    }
+    if (String(item.menu_type || '') === '3') {
+      openContactScreen(title);
       return;
     }
 
@@ -306,6 +324,8 @@
     try {
       // Try article list first
       const listRes  = await API.getArticleList(menuId, 0);
+      const baseUrl  = listRes?.base_url || 'https://app.diuk.co.il/app/';
+      const imageUrl = listRes?.image_url || 'assets/images/';
       const articles = extractMenuItems(listRes);
 
       if (articles.length > 0) {
@@ -313,13 +333,18 @@
         articles.forEach(article => {
           const el = document.createElement('div');
           el.className = 'menu-article-item';
-          const aTitle = escHtml(article.title || article.article_title || '');
-          const aDesc  = stripHtml(article.description || article.excerpt || '');
+          const aTitle  = decodeUnicode(article.title || article.article_title || '');
+          const aDesc   = decodeUnicode(stripHtmlAndStyle(article.description || article.excerpt || ''));
+          const imgFull = article.img_name ? baseUrl + imageUrl + article.img_name : '';
           el.innerHTML = `
-            <div class="menu-article-title">${aTitle}</div>
-            ${aDesc ? `<div class="menu-article-desc">${escHtml(aDesc.substring(0, 120))}${aDesc.length > 120 ? '…' : ''}</div>` : ''}
+            ${imgFull ? `<img src="${escAttr(imgFull)}" style="width:100%;max-height:180px;object-fit:cover;border-radius:var(--radius) var(--radius) 0 0;" onerror="this.remove()">` : ''}
+            <div style="padding:14px 16px 10px;">
+              <div class="menu-article-title">${escHtml(aTitle)}</div>
+              ${aDesc ? `<div class="menu-article-desc">${escHtml(aDesc.substring(0, 120))}${aDesc.length > 120 ? '…' : ''}</div>` : ''}
+              <button class="menu-article-more-btn">המשך</button>
+            </div>
           `;
-          el.addEventListener('click', () => showArticleModal(article));
+          el.querySelector('.menu-article-more-btn').addEventListener('click', () => showArticleModal(article, baseUrl));
           body.appendChild(el);
         });
         return;
@@ -339,13 +364,18 @@
     }
   }
 
-  function showArticleModal(article) {
+  function showArticleModal(article, baseUrl) {
     const existing = document.getElementById('article-detail-modal');
     if (existing) existing.remove();
 
-    const title   = article.title || article.article_title || '';
+    const title   = decodeUnicode(article.title || article.article_title || '');
     const content = article.description || article.content || '';
-    const imgUrl  = article.image || article.img_name || '';
+    const base    = baseUrl || 'https://app.diuk.co.il/app/';
+
+    // Wrap content as a full HTML doc with base URL so relative images/fonts resolve
+    const srcDoc = content.trimStart().toLowerCase().startsWith('<!doctype') || content.trimStart().toLowerCase().startsWith('<html')
+      ? content
+      : `<!DOCTYPE html><html><head><base href="${base}"><meta charset="utf-8"></head><body>${content}</body></html>`;
 
     const modal = document.createElement('div');
     modal.id = 'article-detail-modal';
@@ -356,19 +386,367 @@
     `;
     modal.innerHTML = `
       <div style="background:#fff;border-radius:16px;max-width:700px;width:100%;margin:auto;overflow:hidden;box-shadow:var(--shadow-lg);">
-        ${imgUrl ? `<img src="${escAttr(imgUrl)}" style="width:100%;max-height:220px;object-fit:cover;" onerror="this.remove()">` : ''}
         <div style="background:var(--primary);padding:18px 20px;display:flex;align-items:center;justify-content:space-between;">
           <div style="font-size:17px;font-weight:700;color:#fff;">${escHtml(title)}</div>
           <button id="article-close" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;">✕</button>
         </div>
-        <div style="padding:24px;font-size:15px;line-height:1.9;direction:rtl;text-align:right;">
-          ${content || `<div style="color:var(--text-muted);">אין תוכן</div>`}
-        </div>
+        <iframe id="article-iframe" style="width:100%;min-height:500px;border:none;display:block;"
+          sandbox="allow-same-origin allow-scripts allow-popups"></iframe>
       </div>
     `;
     document.body.appendChild(modal);
+
+    const iframe = modal.querySelector('#article-iframe');
+    iframe.srcdoc = srcDoc;
+    iframe.addEventListener('load', () => {
+      try {
+        const doc = iframe.contentDocument;
+        if (doc) {
+          const style = doc.createElement('style');
+          style.textContent = `
+            body, p, div, span, li, td { font-size: 16px !important; line-height: 1.7 !important; }
+            h1 { font-size: 24px !important; }
+            h2 { font-size: 21px !important; }
+            h3 { font-size: 18px !important; }
+            h4, h5, h6 { font-size: 17px !important; }
+          `;
+          doc.head.appendChild(style);
+          doc.querySelectorAll('a[href]').forEach(a => { a.target = '_blank'; });
+          const h = doc.documentElement.scrollHeight;
+          if (h && h > 100) iframe.style.height = h + 'px';
+        }
+      } catch {}
+    });
+
     modal.querySelector('#article-close').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  }
+
+  // ── Contact Us (menu_type 3) ──────────────────────────────────────────────
+  async function openContactScreen(title) {
+    const screen = document.createElement('div');
+    screen.className = 'menu-page-screen';
+    screen.innerHTML = `
+      <div class="menu-page-header">
+        <button class="btn-icon" id="contact-back-btn">✕</button>
+        <div class="menu-page-title">${escHtml(title || 'צור קשר')}</div>
+        <div style="width:40px;"></div>
+      </div>
+      <div class="menu-page-body" id="contact-body">
+        <div style="display:flex;justify-content:center;padding:60px 0;">
+          <div class="spinner" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--primary);"></div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(screen);
+    screen.querySelector('#contact-back-btn').addEventListener('click', () => screen.remove());
+
+    try {
+      const res      = await API.getContactUsList();
+      const baseUrl  = (res?.base_url || '') + (res?.contact_us_image_url || '');
+      const contacts = res?.data?.list || [];
+      const body     = screen.querySelector('#contact-body');
+
+      if (contacts.length === 0) {
+        body.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:48px;">אין אנשי קשר</div>`;
+        return;
+      }
+
+      body.innerHTML = '';
+      contacts.forEach(contact => {
+        const phone  = String(contact.phone_number || contact.phone_no || '').replace(/\D/g, '');
+        const imgUrl = contact.image ? baseUrl + contact.image : '';
+        const el     = document.createElement('div');
+        el.className = 'contact-item';
+        el.innerHTML = `
+          ${imgUrl ? `<img class="contact-avatar" src="${escAttr(imgUrl)}" onerror="this.style.display='none';">` :
+            `<div class="contact-avatar contact-avatar-initials">${escHtml((contact.title || '?').trim()[0])}</div>`}
+          <div class="contact-info">
+            <div class="contact-name">${escHtml(contact.title || '')}</div>
+            <div class="contact-phone" style="direction:ltr;">${escHtml('+' + phone)}</div>
+          </div>
+          ${phone ? `<button class="contact-wa-btn" data-phone="${escAttr(phone)}">
+            <span style="font-size:20px;">💬</span> WhatsApp
+          </button>` : ''}
+        `;
+        if (phone) {
+          el.querySelector('.contact-wa-btn').addEventListener('click', () => {
+            window.open(`https://wa.me/${phone}`);
+          });
+        }
+        body.appendChild(el);
+      });
+    } catch {
+      screen.querySelector('#contact-body').innerHTML =
+        `<div style="text-align:center;color:var(--text-muted);padding:48px;">שגיאה בטעינה</div>`;
+    }
+  }
+
+  // ── Settings (menu_type 10) ───────────────────────────────────────────────
+  async function openSettingsScreen(title) {
+    const screen = document.createElement('div');
+    screen.className = 'menu-page-screen';
+    screen.innerHTML = `
+      <div class="menu-page-header">
+        <button class="btn-icon" id="settings-back-btn">✕</button>
+        <div class="menu-page-title">${escHtml(title || 'הגדרות')}</div>
+        <div style="width:40px;"></div>
+      </div>
+      <div class="menu-page-body" id="settings-body">
+        <div style="display:flex;justify-content:center;padding:60px 0;">
+          <div class="spinner" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--primary);"></div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(screen);
+    screen.querySelector('#settings-back-btn').addEventListener('click', () => screen.remove());
+
+    try {
+      const res       = await API.getCommunityManagers();
+      const managers  = res?.data?.community_managers || res?.community_managers || [];
+      const timeSlots = res?.data?.daily_msg_assign_time_list || res?.daily_msg_assign_time_list || [];
+      const profile   = res?.data?.profile || res?.profile || {};
+
+      // Read saved selections: prefer server profile, fall back to local Store
+      const currentManagerId = String(profile.community_manager_id || await Store.get('settings_community_manager_id', '') || '');
+      const currentTimeId    = String(profile.daily_msg_assign_time_id || await Store.get('settings_daily_time_id', '') || '');
+
+      const currentManager = managers.find(m => String(m.id) === currentManagerId);
+      const currentTime    = timeSlots.find(t => String(t.id) === currentTimeId);
+
+      const body = screen.querySelector('#settings-body');
+      body.innerHTML = '';
+
+      // ── Community Manager ──
+      const managerRow = document.createElement('div');
+      managerRow.className = 'settings-row';
+      managerRow.innerHTML = `
+        <div class="settings-row-label">מנהל קהילה</div>
+        <div class="settings-row-value">${escHtml(currentManager?.name || 'לא נבחר')}</div>
+        <div class="settings-row-arrow">‹</div>
+      `;
+      managerRow.addEventListener('click', () =>
+        openSettingsPicker(screen, 'בחירת מנהל קהילה', managers, currentManagerId,
+          async (id) => {
+            await Store.set('settings_community_manager_id', String(id));
+            const r = await API.updateProfile({ community_manager_id: String(id) });
+            managerRow.querySelector('.settings-row-value').textContent =
+              managers.find(m => String(m.id) === String(id))?.name || '';
+            return r;
+          }
+        )
+      );
+      body.appendChild(managerRow);
+
+      // ── Daily Message Time ──
+      const timeRow = document.createElement('div');
+      timeRow.className = 'settings-row';
+      timeRow.innerHTML = `
+        <div class="settings-row-label">שעה למסר יומי</div>
+        <div class="settings-row-value">${escHtml(currentTime?.label || 'לא נבחר')}</div>
+        <div class="settings-row-arrow">‹</div>
+      `;
+      timeRow.addEventListener('click', () =>
+        openSettingsPicker(screen, 'בחירת שעה למסר יומי', timeSlots, currentTimeId,
+          async (id) => {
+            await Store.set('settings_daily_time_id', String(id));
+            await API.updateProfile({ daily_msg_assign_time_id: String(id) });
+            timeRow.querySelector('.settings-row-value').textContent =
+              timeSlots.find(t => String(t.id) === String(id))?.label || '';
+          }
+        )
+      );
+      body.appendChild(timeRow);
+
+      // ── Subscription Management (placeholder) ──
+      const subsRow = document.createElement('div');
+      subsRow.className = 'settings-row settings-row-disabled';
+      subsRow.innerHTML = `
+        <div class="settings-row-label">ניהול מנויים</div>
+        <div class="settings-row-value" style="color:var(--text-muted);font-size:13px;">יטופל בהמשך</div>
+        <div class="settings-row-arrow">‹</div>
+      `;
+      body.appendChild(subsRow);
+
+    } catch {
+      screen.querySelector('#settings-body').innerHTML =
+        `<div style="text-align:center;color:var(--text-muted);padding:48px;">שגיאה בטעינה</div>`;
+    }
+  }
+
+  function openSettingsPicker(screen, title, items, currentId, onSave) {
+    let selectedId = String(currentId);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'guide-confirm-overlay';
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:18px;max-width:360px;width:100%;max-height:70vh;
+                  display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-lg);">
+        <div style="background:var(--primary);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:16px;font-weight:700;color:#fff;">${escHtml(title)}</div>
+          <button id="picker-close" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;">✕</button>
+        </div>
+        <div id="picker-list" style="overflow-y:auto;flex:1;"></div>
+        <div style="padding:14px 16px;border-top:1px solid var(--border);">
+          <button id="picker-save" class="btn btn-primary btn-full">שמירה</button>
+        </div>
+      </div>
+    `;
+    screen.appendChild(overlay);
+    overlay.querySelector('#picker-close').addEventListener('click', () => overlay.remove());
+
+    const list = overlay.querySelector('#picker-list');
+    items.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'settings-picker-item' + (String(item.id) === selectedId ? ' selected' : '');
+      el.dataset.id = String(item.id);
+      el.innerHTML = `
+        <span>${escHtml(item.label || item.name || '')}</span>
+        <span class="picker-check" style="color:var(--primary);font-size:18px;">${String(item.id) === selectedId ? '✓' : ''}</span>
+      `;
+      el.addEventListener('click', () => {
+        selectedId = String(item.id);
+        list.querySelectorAll('.settings-picker-item').forEach(r => {
+          const active = r.dataset.id === selectedId;
+          r.classList.toggle('selected', active);
+          r.querySelector('.picker-check').textContent = active ? '✓' : '';
+        });
+      });
+      list.appendChild(el);
+    });
+
+    overlay.querySelector('#picker-save').addEventListener('click', async () => {
+      overlay.remove();
+      try { await onSave(selectedId); } catch {}
+    });
+  }
+
+  // ── HTML page (menu_type 5) ───────────────────────────────────────────────
+  async function openHtmlPageScreen(title, menuId) {
+    const screen = document.createElement('div');
+    screen.className = 'menu-page-screen';
+    screen.innerHTML = `
+      <div class="menu-page-header">
+        <button class="btn-icon" id="html-back-btn">✕</button>
+        <div class="menu-page-title">${escHtml(title)}</div>
+        <div style="width:40px;"></div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;" id="html-page-body">
+        <div style="display:flex;justify-content:center;padding:60px 0;">
+          <div class="spinner" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--primary);"></div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(screen);
+    screen.querySelector('#html-back-btn').addEventListener('click', () => screen.remove());
+
+    try {
+      const res     = await API.getMenuPageDetail(menuId);
+      const data    = res?.data?.detail || res?.data || res || {};
+      const html    = data.page_html || data.description || data.content || data.body || '';
+      const bgcolor = data.bgcolor || '#ffffff';
+      const body    = screen.querySelector('#html-page-body');
+
+      if (!html) {
+        body.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:48px;">אין תוכן זמין</div>`;
+        return;
+      }
+
+      const srcDoc = html.trimStart().toLowerCase().startsWith('<!doctype') || html.trimStart().toLowerCase().startsWith('<html')
+        ? html
+        : `<!DOCTYPE html><html><head><base href="https://app.diuk.co.il/app/"><meta charset="utf-8">
+           <style>body{background:${bgcolor};margin:0;padding:16px;direction:rtl;}</style>
+           </head><body>${html}</body></html>`;
+
+      body.innerHTML = '';
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'flex:1;width:100%;border:none;display:block;min-height:400px;';
+      iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups');
+      body.appendChild(iframe);
+      iframe.srcdoc = srcDoc;
+      iframe.addEventListener('load', () => {
+        try {
+          const doc = iframe.contentDocument;
+          if (doc) {
+            const style = doc.createElement('style');
+            style.textContent = `
+              body, p, div, span, li, td { font-size: 16px !important; line-height: 1.7 !important; }
+              h1 { font-size: 24px !important; }
+              h2 { font-size: 21px !important; }
+              h3 { font-size: 18px !important; }
+              h4, h5, h6 { font-size: 17px !important; }
+            `;
+            doc.head.appendChild(style);
+            doc.querySelectorAll('a[href]').forEach(a => { a.target = '_blank'; });
+            const h = doc.documentElement.scrollHeight;
+            if (h && h > 100) iframe.style.height = h + 'px';
+          }
+        } catch {}
+      });
+    } catch {
+      screen.querySelector('#html-page-body').innerHTML =
+        `<div style="text-align:center;color:var(--text-muted);padding:48px;">שגיאה בטעינה</div>`;
+    }
+  }
+
+  // ── Shop (menu_type 2) ────────────────────────────────────────────────────
+  function openShopScreen(title) {
+    const screen = document.createElement('div');
+    screen.className = 'menu-page-screen';
+    screen.innerHTML = `
+      <div class="menu-page-header">
+        <button class="btn-icon" id="shop-back-btn">✕</button>
+        <div class="menu-page-title">${escHtml(title || 'חנות')}</div>
+        <div style="width:40px;"></div>
+      </div>
+      <div class="menu-page-body" id="shop-page-body"></div>
+    `;
+    document.body.appendChild(screen);
+    screen.querySelector('#shop-back-btn').addEventListener('click', () => screen.remove());
+    loadShopProducts(screen, 0);
+  }
+
+  async function loadShopProducts(screen, offset) {
+    const body = screen.querySelector('#shop-page-body');
+    if (offset === 0) {
+      body.innerHTML = `<div style="display:flex;justify-content:center;padding:60px 0;"><div class="spinner" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--primary);"></div></div>`;
+    }
+    try {
+      const res      = await API.getProductList(offset);
+      const products = res?.data?.list || [];
+      const baseUrl  = (res?.base_url || '') + (res?.image_url || '');
+      if (offset === 0) body.innerHTML = '';
+      if (products.length === 0 && offset === 0) {
+        body.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:48px;">אין מוצרים זמינים</div>`;
+        return;
+      }
+      products.forEach(product => {
+        const imgUrl = product.img_name ? baseUrl + product.img_name : '';
+        const el = document.createElement('div');
+        el.className = 'shop-product-item';
+        el.innerHTML = `
+          ${imgUrl ? `<img class="shop-product-img" src="${escAttr(imgUrl)}" onerror="this.style.display='none';">` : ''}
+          <div class="shop-product-body">
+            <div class="shop-product-title">${escHtml(product.title || '')}</div>
+            ${product.description ? `<div class="shop-product-desc">${escHtml(product.description)}</div>` : ''}
+            ${product.amount ? `<div class="shop-product-price">₪${escHtml(product.amount)}</div>` : ''}
+            ${product.url ? `<a class="shop-product-btn" href="${escAttr(product.url)}" target="_blank">לרכישה</a>` : ''}
+          </div>
+        `;
+        body.appendChild(el);
+      });
+      body.querySelector('.shop-load-more')?.remove();
+      if (products.length >= 10) {
+        const moreBtn = document.createElement('button');
+        moreBtn.className = 'btn btn-outline shop-load-more';
+        moreBtn.style.cssText = 'width:calc(100% - 32px);margin:16px;display:block;';
+        moreBtn.textContent = 'טען עוד';
+        moreBtn.addEventListener('click', () => { moreBtn.remove(); loadShopProducts(screen, offset + 10); });
+        body.appendChild(moreBtn);
+      }
+    } catch {
+      if (offset === 0) body.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:48px;">שגיאה בטעינה</div>`;
+    }
   }
 
   // ── Guide Booking (menu_type 11) ──────────────────────────────────────────
@@ -402,12 +780,22 @@
       guides.forEach(guide => {
         const hasBooking = guide.active_booking === '1' || guide.active_booking === 1;
         const el = document.createElement('div');
-        el.className = 'guide-item';
+        el.className = 'guide-item' + (hasBooking ? ' has-booking' : '');
         el.innerHTML = `
           <div class="guide-item-name">${escHtml(guide.name || '')}</div>
-          ${hasBooking ? `<div class="guide-item-booking">שיחה קיימת: ${escHtml(guide.active_booking_date || '')} ${escHtml(guide.active_times || '')}</div>` : ''}
+          ${hasBooking ? `
+            <div class="guide-item-booking">שיחה קיימת: ${escHtml(guide.active_booking_date || '')} ${escHtml(guide.active_times || '')}</div>
+            <button class="guide-cancel-btn" data-booking-id="${escAttr(guide.active_booking_id || '')}">ביטול שיחה</button>
+          ` : ''}
         `;
-        el.addEventListener('click', () => loadGuideDates(screen, guide));
+        if (!hasBooking) {
+          el.addEventListener('click', () => loadGuideDates(screen, guide));
+        } else {
+          el.querySelector('.guide-cancel-btn').addEventListener('click', e => {
+            e.stopPropagation();
+            confirmCancelGuideBook(screen, guide, e.currentTarget.dataset.bookingId);
+          });
+        }
         body.appendChild(el);
       });
     } catch {
@@ -480,31 +868,133 @@
       btn.disabled = true; btn.textContent = '...';
       try {
         const res = await API.addGuideBook(guide.id, slot.date, slot.booking_date_id);
-        overlay.remove();
-        showGuideBookSuccess(screen, guide, slot, res);
-      } catch {
+        console.log('[AddGuideBook] response:', JSON.stringify(res));
+        if (res && (res.status === '1' || res.status === 1)) {
+          overlay.remove();
+          showGuideBookSuccess(screen, guide, slot, res);
+        } else {
+          btn.disabled = false; btn.textContent = 'אישור';
+          overlay.querySelector('#guide-confirm-err').textContent = res?.msg || 'שגיאה בקביעת השיחה, נסה/י שוב';
+        }
+      } catch (e) {
         btn.disabled = false; btn.textContent = 'אישור';
         overlay.querySelector('#guide-confirm-err').textContent = 'שגיאה בקביעת השיחה, נסה/י שוב';
+        console.error('AddGuideBook error:', e);
       }
     });
   }
 
+  function formatBookingDate(dateStr) {
+    if (!dateStr) return '';
+    const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return dateStr;
+    return `${m[3]}/${m[2]}/${m[1].slice(2)}`;
+  }
+
   function showGuideBookSuccess(screen, guide, slot, res) {
-    const body  = screen.querySelector('#guide-page-body');
-    const phone = res?.data?.user_phone_code && res?.data?.user_phone_number
+    const body      = screen.querySelector('#guide-page-body');
+    const config    = res?.data?.config || {};
+    const emailOk = (config.guide_email_status?.status === '1' || config.guide_email_status?.status === 1) &&
+                     (config.user_email_status?.status  === '1' || config.user_email_status?.status  === 1);
+    if (!emailOk) console.warn('[AddGuideBook] email send failed:', config);
+    const phone     = res?.data?.user_phone_code && res?.data?.user_phone_number
       ? `+${res.data.user_phone_code} ${res.data.user_phone_number}` : '';
+    const bookingId = res?.data?.booking_id;
+    const fmtDate   = formatBookingDate(slot.date || '');
+
     body.innerHTML = `
-      <div style="display:flex;flex-direction:column;align-items:center;padding:56px 24px;text-align:center;gap:14px;">
-        <div style="font-size:52px;">✅</div>
-        <div style="font-size:18px;font-weight:700;color:var(--primary);">השיחה נקבעה בהצלחה!</div>
-        <div style="font-size:15px;font-weight:600;">${escHtml(guide.name || '')}</div>
-        <div style="font-size:15px;">${escHtml(slot.label || '')} ${escHtml(slot.date || '')}</div>
-        <div style="font-size:14px;color:var(--text-muted);">${escHtml(slot.open_time || '')} – ${escHtml(slot.close_time || '')}</div>
-        ${phone ? `<div style="font-size:13px;color:var(--text-muted);">פרטים נשלחו לנייד ${escHtml(phone)}</div>` : ''}
-        <button class="btn btn-primary" id="guide-done-btn" style="margin-top:16px;padding:12px 36px;">סיום</button>
+      <div style="padding:28px 24px;direction:rtl;text-align:right;line-height:1.9;">
+        <div style="font-size:18px;font-weight:700;color:var(--primary);margin-bottom:20px;text-align:center;">
+          תיאום שיחה עם ${escHtml(guide.name || '')}
+        </div>
+        <div style="font-size:15px;margin-bottom:16px;">
+          השיחה עם <strong>${escHtml(guide.name || '')}</strong> נקבעה לתאריך
+          <strong>${escHtml(fmtDate)}</strong> בין השעות
+          <strong>${escHtml(slot.open_time || '')} - ${escHtml(slot.close_time || '')}</strong>
+        </div>
+        <div style="font-size:14px;color:var(--text-muted);margin-bottom:16px;">
+          עליך להיות זמין/ה לקבלת שיחה טלפונית מהמדריך/ה בשעה היעודה, אם לא ניתן יהיה ליצור איתך קשר, השיחה המתוכננת לא תתקיים.
+        </div>
+        ${phone ? `<div style="font-size:15px;margin-bottom:16px;">
+          מספר הטלפון אליו תתבצע השיחה:<br>
+          <strong style="direction:ltr;display:inline-block;font-size:16px;">${escHtml(phone)}</strong>
+        </div>` : ''}
+        <div style="display:flex;gap:12px;margin-top:24px;">
+          ${bookingId ? `<button id="booking-cancel-btn" class="btn" style="flex:1;background:none;border:1.5px solid var(--danger);color:var(--danger);font-weight:600;border-radius:var(--radius);">ביטול</button>` : ''}
+          <button id="guide-done-btn" class="btn btn-primary" style="flex:1;">סגור</button>
+        </div>
       </div>
     `;
+
     body.querySelector('#guide-done-btn').addEventListener('click', () => screen.remove());
+
+    if (bookingId) {
+      body.querySelector('#booking-cancel-btn').addEventListener('click', () => {
+        const overlay = document.createElement('div');
+        overlay.className = 'guide-confirm-overlay';
+        overlay.innerHTML = `
+          <div class="guide-confirm-card">
+            <div style="font-size:16px;font-weight:700;margin-bottom:10px;">ביטול שיחה</div>
+            <div style="font-size:14px;color:var(--text-muted);margin-bottom:20px;">האם אתה בטוח שברצונך לבטל את השיחה?</div>
+            <div id="cancel-err" style="color:#e53e3e;font-size:13px;margin-bottom:8px;min-height:18px;"></div>
+            <div style="display:flex;gap:10px;">
+              <button id="cancel-yes" class="btn" style="flex:1;background:var(--danger);color:#fff;">כן</button>
+              <button id="cancel-no"  class="btn" style="flex:1;background:var(--surface);">לא</button>
+            </div>
+          </div>
+        `;
+        screen.appendChild(overlay);
+        overlay.querySelector('#cancel-no').addEventListener('click', () => overlay.remove());
+        overlay.querySelector('#cancel-yes').addEventListener('click', async () => {
+          const btn = overlay.querySelector('#cancel-yes');
+          btn.disabled = true; btn.textContent = '...';
+          try {
+            await API.cancelGuideBook(bookingId);
+            screen.remove();
+          } catch {
+            btn.disabled = false; btn.textContent = 'כן';
+            overlay.querySelector('#cancel-err').textContent = 'שגיאה בביטול, נסה/י שוב';
+          }
+        });
+      });
+    }
+  }
+
+  function confirmCancelGuideBook(screen, guide, bookingId) {
+    const overlay = document.createElement('div');
+    overlay.className = 'guide-confirm-overlay';
+    overlay.innerHTML = `
+      <div class="guide-confirm-card">
+        <div style="font-size:36px;margin-bottom:10px;">🗓️</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;">ביטול שיחה</div>
+        <div style="font-size:14px;color:var(--text-muted);margin-bottom:6px;">${escHtml(guide.name || '')}</div>
+        <div style="font-size:14px;color:var(--text-muted);margin-bottom:20px;">${escHtml(guide.active_booking_date || '')} ${escHtml(guide.active_times || '')}</div>
+        <div id="cancel-confirm-err" style="color:#e53e3e;font-size:13px;margin-bottom:8px;min-height:18px;"></div>
+        <div style="display:flex;gap:10px;">
+          <button id="cancel-confirm-yes" class="btn" style="flex:1;background:var(--danger);color:#fff;">ביטול שיחה</button>
+          <button id="cancel-confirm-no"  class="btn" style="flex:1;background:var(--surface);">חזרה</button>
+        </div>
+      </div>
+    `;
+    screen.appendChild(overlay);
+    overlay.querySelector('#cancel-confirm-no').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('#cancel-confirm-yes').addEventListener('click', async () => {
+      const btn = overlay.querySelector('#cancel-confirm-yes');
+      btn.disabled = true; btn.textContent = '...';
+      try {
+        const res = await API.cancelGuideBook(bookingId);
+        overlay.remove();
+        if (res && (res.status === '1' || res.status === 1)) {
+          loadGuideList(screen);
+        } else {
+          loadGuideList(screen);
+        }
+      } catch (e) {
+        btn.disabled = false; btn.textContent = 'ביטול שיחה';
+        overlay.querySelector('#cancel-confirm-err').textContent = 'שגיאה בביטול, נסה/י שוב';
+        console.error('CancelGuideBooking error:', e);
+      }
+    });
   }
 
   async function showProfileModal() {
@@ -617,6 +1107,18 @@
     const t = document.createElement('div');
     t.innerHTML = html;
     return t.textContent || '';
+  }
+
+  function stripHtmlAndStyle(html) {
+    const t = document.createElement('div');
+    t.innerHTML = html;
+    t.querySelectorAll('style, script, head').forEach(el => el.remove());
+    return (t.textContent || '').trim();
+  }
+
+  function decodeUnicode(str) {
+    if (!str) return '';
+    return String(str).replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
   }
 
   function escHtml(s) {

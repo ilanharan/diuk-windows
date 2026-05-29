@@ -48,7 +48,7 @@ html, body {
 }
 .splash-subtitle {
   font-size: 16px; font-weight: 300;
-  color: rgba(255,255,255,0.75); margin-top: -28px;
+  color: rgba(255,255,255,0.75); margin-top: 8px;
 }
 .splash-logo { text-align: center; }
 
@@ -761,7 +761,74 @@ input::-ms-clear { display: none; }
 }
 .menu-article-item:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
 .menu-article-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
-.menu-article-desc  { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+.menu-article-desc  { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 10px; }
+.menu-article-more-btn {
+  background: none; border: 1.5px solid var(--primary); border-radius: 7px;
+  color: var(--primary); font-family: inherit; font-size: 13px; font-weight: 600;
+  padding: 5px 16px; cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.menu-article-more-btn:hover { background: var(--primary); color: #fff; }
+
+/* ── Contact Us ───────────────────────────────────────────────────────────── */
+.contact-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 18px; border-bottom: 1px solid var(--border);
+}
+.contact-avatar {
+  width: 52px; height: 52px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+}
+.contact-avatar-initials {
+  background: var(--primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 700;
+}
+.contact-info { flex: 1; }
+.contact-name  { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+.contact-phone { font-size: 13px; color: var(--text-muted); }
+.contact-wa-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 20px;
+  background: #25D366; color: #fff; border: none;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; transition: opacity 0.15s;
+}
+.contact-wa-btn:hover { opacity: 0.85; }
+
+/* ── Settings ─────────────────────────────────────────────────────────────── */
+.settings-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 18px 20px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 0.15s;
+}
+.settings-row:hover:not(.settings-row-disabled) { background: var(--surface); }
+.settings-row-disabled { cursor: default; opacity: 0.6; }
+.settings-row-label { font-size: 16px; font-weight: 600; flex: 1; }
+.settings-row-value { font-size: 14px; color: var(--text-muted); }
+.settings-row-arrow { font-size: 20px; color: var(--text-muted); transform: rotate(180deg); margin-right: 4px; }
+.settings-picker-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid var(--border);
+  cursor: pointer; font-size: 15px; transition: background 0.15s;
+}
+.settings-picker-item:hover { background: var(--surface); }
+.settings-picker-item.selected { font-weight: 700; color: var(--primary); }
+
+/* ── Shop ─────────────────────────────────────────────────────────────────── */
+.shop-product-item {
+  background: var(--bg-card); border-radius: var(--radius);
+  margin-bottom: 14px; box-shadow: var(--shadow); overflow: hidden;
+}
+.shop-product-img { width: 100%; height: auto; display: block; }
+.shop-product-body { padding: 14px 16px; }
+.shop-product-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.shop-product-desc  { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 10px; }
+.shop-product-price { font-size: 18px; font-weight: 700; color: var(--primary); margin-bottom: 12px; }
+.shop-product-btn {
+  display: inline-block; padding: 9px 22px;
+  background: var(--primary); color: #fff; border-radius: 8px;
+  font-size: 14px; font-weight: 600; text-decoration: none; transition: background 0.15s;
+}
+.shop-product-btn:hover { background: var(--primary-light); }
 
 /* ── Guide Booking ────────────────────────────────────────────────────────── */
 .guide-item {
@@ -770,9 +837,17 @@ input::-ms-clear { display: none; }
   box-shadow: var(--shadow); cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
 }
-.guide-item:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+.guide-item:hover:not(.has-booking) { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+.guide-item.has-booking { cursor: default; background: var(--bg-card); }
 .guide-item-name    { font-size: 16px; font-weight: 700; }
 .guide-item-booking { font-size: 12px; color: var(--primary); margin-top: 4px; }
+.guide-cancel-btn {
+  margin-top: 10px; padding: 7px 16px;
+  background: none; border: 1.5px solid var(--danger); border-radius: 8px;
+  color: var(--danger); font-family: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.guide-cancel-btn:hover { background: var(--danger); color: #fff; }
 .guide-dates-header {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 14px; background: var(--surface);

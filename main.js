@@ -151,8 +151,9 @@ ipcMain.handle('api:post', async (_e, action, extra, token, uid, udidDevice) => 
     }
     else if (action === 'GetArticleList') {
       const list = result.data && result.data.list;
-      console.log(`[API] GetArticleList: ${list ? list.length : 0} items, menu_id param sent`);
-      if (list && list[0]) console.log(`[API] first article:`, JSON.stringify(list[0]).substring(0, 300));
+      console.log(`[API] GetArticleList: ${list ? list.length : 0} items, base_url="${result.base_url}" image_url="${result.image_url}"`);
+      if (list && list[0]) console.log(`[API] first article keys:`, Object.keys(list[0]).join(', '));
+      if (list && list[0]) console.log(`[API] first article img_name="${list[0].img_name}" image="${list[0].image}"`);
     }
     else if (action === 'GetDailyMessageAllComment') {
       const list = result.data && (Array.isArray(result.data.list) ? result.data.list : (typeof result.data.list === 'string' ? (() => { try { return JSON.parse(result.data.list); } catch { return []; } })() : []));
