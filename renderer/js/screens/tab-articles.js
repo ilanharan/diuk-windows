@@ -14,10 +14,18 @@ const TabArticles = (() => {
       const list = document.getElementById('articles-list');
       if (!list) return;
 
-      const items = extractList(res);
-      console.log(`[KeyPhrases] total=${items.length}`);
-      items.forEach((item, i) => console.log(`  [${i}] id=${item.id} title=${item.title}`));
+      const isPurchased = res?.data?.is_purchased === '1' || res?.data?.is_purchased === 1;
+      if (!isPurchased) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">🔒</div>
+            <div class="empty-state-title">תוכן זה מיועד למנויים בלבד</div>
+            <div class="empty-state-msg">רכוש מנוי למשפטי מפתח כדי לגשת לתכנים</div>
+          </div>`;
+        return;
+      }
 
+      const items = extractList(res);
       list.innerHTML = '';
 
       if (items.length === 0) {

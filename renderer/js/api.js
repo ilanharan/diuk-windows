@@ -50,7 +50,11 @@ const API = (() => {
   const getMessageDetail        = (msgId, msgType) => post('GetMessageDetail',         { msg_id: String(msgId), msg_type: String(msgType) });
   const getQuotes               = (offset = 0) => post('GetDailyMessageAllComment',     { offset: String(offset), limit: '10', device_type: 'a' });
   const getSurveyList           = (page = 1) => post('GetSurveyList',                  { page_no: String(page) });
-  const getSubscriptionContent  = (page = 1) => post('GetSubscriptionContentInfoList', { page_no: String(page) });
+  const getSubscriptionContent     = (page = 1)  => post('GetSubscriptionContentInfoList', { page_no: String(page) });
+  const getSubscriptionFreeContent = (catId)     => post('GetSubscriptionContent1',        { subscription_cat_id: String(catId), device_type: 'a' });
+  const getSubscriptionContentList = (catId, page = 1) => post('GetSubscriptionContentInfoList', { subscription_cat_id: String(catId), page_no: String(page) });
+  const getSubscriptionCategory    = ()          => post('GetSubscriptionCategory',        { device_type: 'a' });
+  const getMySubscriptionsStatus   = ()          => post('GetMySubscriptionsStatus',       { device_type: 'a' });
   const addDailyMessageRating   = (msgId, userMsgId, rating) => post('AddDailyMessageRating', {
     daily_msg_id: String(msgId),
     user_msg_id:  String(userMsgId || ''),
@@ -84,6 +88,7 @@ const API = (() => {
     getBadgeCount, getBundleSubscription, getAllMenu, getMenuPageDetail, getArticleList, markAllRead,
     addDailyMessageRating, deleteComment,
     getProductList, getContactUsList, getCommunityManagers, updateProfile,
+    getSubscriptionFreeContent, getSubscriptionContentList, getSubscriptionCategory, getMySubscriptionsStatus,
     getGuideList, getGuideDetail, addGuideBook, cancelGuideBook,
   };
 })();

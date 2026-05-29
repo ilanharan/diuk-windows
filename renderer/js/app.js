@@ -868,7 +868,6 @@
       btn.disabled = true; btn.textContent = '...';
       try {
         const res = await API.addGuideBook(guide.id, slot.date, slot.booking_date_id);
-        console.log('[AddGuideBook] response:', JSON.stringify(res));
         if (res && (res.status === '1' || res.status === 1)) {
           overlay.remove();
           showGuideBookSuccess(screen, guide, slot, res);
