@@ -46,9 +46,21 @@
   });
 
   // ── Header ────────────────────────────────────────────────────────────────
-  async function buildHeader() {
-    const name = await Store.getUserName();
+  async function refreshHeaderAvatar() {
+    const avatarBtn = document.getElementById('avatar-btn');
+    if (!avatarBtn) return;
+    const name     = await Store.getUserName();
     const initials = (name || 'א').trim().substring(0, 1);
+    const imgUrl   = await Store.get('profile_image_url', '') || await Store.get('profile_image', '');
+    avatarBtn.innerHTML = imgUrl
+      ? `<img src="${escAttr(imgUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.remove();">`
+      : initials;
+  }
+
+  async function buildHeader() {
+    const name     = await Store.getUserName();
+    const initials = (name || 'א').trim().substring(0, 1);
+    const imgUrl   = await Store.get('profile_image_url', '') || await Store.get('profile_image', '');
 
     const header = document.createElement('div');
     header.className = 'app-header';
@@ -60,7 +72,7 @@
       </div>
       <div class="header-title">דיוק</div>
       <div class="header-user">
-        <div class="header-avatar" id="avatar-btn">${initials}</div>
+        <div class="header-avatar" id="avatar-btn">${imgUrl ? `<img src="${escAttr(imgUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.remove();">` : initials}</div>
       </div>
     `;
     // Insert header before the tab bar
@@ -68,9 +80,7 @@
     screenMain.insertBefore(header, tabBar);
 
     header.querySelector('#menu-btn').addEventListener('click', openDrawer);
-
     header.querySelector('#refresh-btn').addEventListener('click', () => location.reload());
-
     header.querySelector('#avatar-btn').addEventListener('click', () => showProfilePopup());
   }
 
@@ -270,6 +280,11 @@
     const menuId = String(item.id || item.menu_id || '');
     const title  = item.title || item.name || item.menu_name || item.menu_title || '';
 
+    if (String(item.menu_type || '') === '11') {
+      openGuideBookingScreen(title);
+      return;
+    }
+
     const screen = document.createElement('div');
     screen.className = 'menu-page-screen';
     screen.innerHTML = `
@@ -354,6 +369,142 @@
     document.body.appendChild(modal);
     modal.querySelector('#article-close').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  }
+
+  // ── Guide Booking (menu_type 11) ──────────────────────────────────────────
+  function openGuideBookingScreen(title) {
+    const screen = document.createElement('div');
+    screen.className = 'menu-page-screen';
+    screen.innerHTML = `
+      <div class="menu-page-header">
+        <button class="btn-icon" id="guide-back-btn">✕</button>
+        <div class="menu-page-title">${escHtml(title || 'שיחה אישית')}</div>
+        <div style="width:40px;"></div>
+      </div>
+      <div class="menu-page-body" id="guide-page-body"></div>
+    `;
+    document.body.appendChild(screen);
+    screen.querySelector('#guide-back-btn').addEventListener('click', () => screen.remove());
+    loadGuideList(screen);
+  }
+
+  async function loadGuideList(screen) {
+    const body = screen.querySelector('#guide-page-body');
+    body.innerHTML = `<div style="display:flex;justify-content:center;padding:60px 0;"><div class="spinner" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--primary);"></div></div>`;
+    try {
+      const res    = await API.getGuideList(0);
+      const guides = res?.data?.list || res?.list || [];
+      if (guides.length === 0) {
+        body.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:48px;">אין מדריכים זמינים</div>`;
+        return;
+      }
+      body.innerHTML = `<div style="padding:12px 16px 8px;color:var(--text-muted);font-size:14px;">בחר/י מדריך/ה לקביעת שיחה אישית</div>`;
+      guides.forEach(guide => {
+        const hasBooking = guide.active_booking === '1' || guide.active_booking === 1;
+        const el = document.createElement('div');
+        el.className = 'guide-item';
+        el.innerHTML = `
+          <div class="guide-item-name">${escHtml(guide.name || '')}</div>
+          ${hasBooking ? `<div class="guide-item-booking">שיחה קיימת: ${escHtml(guide.active_booking_date || '')} ${escHtml(guide.active_times || '')}</div>` : ''}
+        `;
+        el.addEventListener('click', () => loadGuideDates(screen, guide));
+        body.appendChild(el);
+      });
+    } catch {
+      body.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:48px;">שגיאה בטעינה</div>`;
+    }
+  }
+
+  async function loadGuideDates(screen, guide) {
+    const body = screen.querySelector('#guide-page-body');
+    body.innerHTML = `<div style="display:flex;justify-content:center;padding:60px 0;"><div class="spinner" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--primary);"></div></div>`;
+    try {
+      const res   = await API.getGuideDetail(guide.id);
+      const dates = res?.data?.booking_days || res?.booking_days || [];
+      body.innerHTML = `
+        <div class="guide-dates-header">
+          <button class="btn-icon guide-dates-back" style="color:var(--text);font-size:20px;">←</button>
+          <div style="font-weight:700;font-size:16px;">${escHtml(guide.name || '')}</div>
+        </div>
+        <div style="padding:10px 16px 6px;color:var(--text-muted);font-size:13px;">בחר/י תאריך לשיחה</div>
+        <div id="guide-dates-list"></div>
+      `;
+      body.querySelector('.guide-dates-back').addEventListener('click', () => loadGuideList(screen));
+      const list = body.querySelector('#guide-dates-list');
+      if (dates.length === 0) {
+        list.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:40px;">אין תאריכים זמינים</div>`;
+        return;
+      }
+      dates.forEach(slot => {
+        const available = (slot.status === '1' || slot.status === 1) &&
+                          Number(slot.booked_count || 0) < Number(slot.maximum_booking || 99);
+        const el = document.createElement('div');
+        el.className = 'guide-date-item' + (available ? '' : ' disabled');
+        el.innerHTML = `
+          <div class="guide-date-day">${escHtml(slot.label || '')}</div>
+          <div class="guide-date-info">
+            <div class="guide-date-date">${escHtml(slot.date || '')}</div>
+            <div class="guide-date-time">${escHtml(slot.open_time || '')} – ${escHtml(slot.close_time || '')}</div>
+          </div>
+          ${!available ? '<div class="guide-date-full">מלא</div>' : ''}
+        `;
+        if (available) el.addEventListener('click', () => confirmGuideBook(screen, guide, slot));
+        list.appendChild(el);
+      });
+    } catch {
+      body.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:48px;">שגיאה בטעינה</div>`;
+    }
+  }
+
+  function confirmGuideBook(screen, guide, slot) {
+    const overlay = document.createElement('div');
+    overlay.className = 'guide-confirm-overlay';
+    overlay.innerHTML = `
+      <div class="guide-confirm-card">
+        <div style="font-size:36px;margin-bottom:10px;">📅</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:6px;">אישור קביעת שיחה</div>
+        <div style="font-size:14px;color:var(--text-muted);margin-bottom:4px;">${escHtml(guide.name || '')}</div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:2px;">${escHtml(slot.label || '')} ${escHtml(slot.date || '')}</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">${escHtml(slot.open_time || '')} – ${escHtml(slot.close_time || '')}</div>
+        <div id="guide-confirm-err" style="color:#e53e3e;font-size:13px;margin-bottom:8px;min-height:18px;"></div>
+        <div style="display:flex;gap:10px;">
+          <button id="guide-confirm-yes" class="btn btn-primary" style="flex:1;">אישור</button>
+          <button id="guide-confirm-no"  class="btn" style="flex:1;background:var(--surface);">ביטול</button>
+        </div>
+      </div>
+    `;
+    screen.appendChild(overlay);
+    overlay.querySelector('#guide-confirm-no').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('#guide-confirm-yes').addEventListener('click', async () => {
+      const btn = overlay.querySelector('#guide-confirm-yes');
+      btn.disabled = true; btn.textContent = '...';
+      try {
+        const res = await API.addGuideBook(guide.id, slot.date, slot.booking_date_id);
+        overlay.remove();
+        showGuideBookSuccess(screen, guide, slot, res);
+      } catch {
+        btn.disabled = false; btn.textContent = 'אישור';
+        overlay.querySelector('#guide-confirm-err').textContent = 'שגיאה בקביעת השיחה, נסה/י שוב';
+      }
+    });
+  }
+
+  function showGuideBookSuccess(screen, guide, slot, res) {
+    const body  = screen.querySelector('#guide-page-body');
+    const phone = res?.data?.user_phone_code && res?.data?.user_phone_number
+      ? `+${res.data.user_phone_code} ${res.data.user_phone_number}` : '';
+    body.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;padding:56px 24px;text-align:center;gap:14px;">
+        <div style="font-size:52px;">✅</div>
+        <div style="font-size:18px;font-weight:700;color:var(--primary);">השיחה נקבעה בהצלחה!</div>
+        <div style="font-size:15px;font-weight:600;">${escHtml(guide.name || '')}</div>
+        <div style="font-size:15px;">${escHtml(slot.label || '')} ${escHtml(slot.date || '')}</div>
+        <div style="font-size:14px;color:var(--text-muted);">${escHtml(slot.open_time || '')} – ${escHtml(slot.close_time || '')}</div>
+        ${phone ? `<div style="font-size:13px;color:var(--text-muted);">פרטים נשלחו לנייד ${escHtml(phone)}</div>` : ''}
+        <button class="btn btn-primary" id="guide-done-btn" style="margin-top:16px;padding:12px 36px;">סיום</button>
+      </div>
+    `;
+    body.querySelector('#guide-done-btn').addEventListener('click', () => screen.remove());
   }
 
   async function showProfileModal() {
@@ -456,6 +607,7 @@
       await Store.set('user_gender', selectedGender);
       if (pendingImageDataUrl) await Store.set('profile_image_url', pendingImageDataUrl);
       modal.remove();
+      await refreshHeaderAvatar();
     });
 
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });

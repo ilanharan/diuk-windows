@@ -763,6 +763,43 @@ input::-ms-clear { display: none; }
 .menu-article-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
 .menu-article-desc  { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
 
+/* ── Guide Booking ────────────────────────────────────────────────────────── */
+.guide-item {
+  background: var(--bg-card); border-radius: var(--radius);
+  padding: 16px 18px; margin-bottom: 10px;
+  box-shadow: var(--shadow); cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.guide-item:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+.guide-item-name    { font-size: 16px; font-weight: 700; }
+.guide-item-booking { font-size: 12px; color: var(--primary); margin-top: 4px; }
+.guide-dates-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.guide-date-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 0.15s;
+}
+.guide-date-item:hover:not(.disabled) { background: var(--surface); }
+.guide-date-item.disabled { opacity: 0.4; cursor: default; }
+.guide-date-day  { font-size: 15px; font-weight: 700; min-width: 54px; color: var(--primary); }
+.guide-date-info { flex: 1; }
+.guide-date-date { font-size: 14px; font-weight: 600; }
+.guide-date-time { font-size: 13px; color: var(--text-muted); }
+.guide-date-full { font-size: 12px; color: var(--text-muted); padding: 4px 10px; background: var(--border); border-radius: 6px; }
+.guide-confirm-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.guide-confirm-card {
+  background: #fff; border-radius: 18px; padding: 28px 24px;
+  max-width: 320px; width: 100%; text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 @media (min-width: 768px) {
   .content-list { max-width: 700px; margin: 0 auto; width: 100%; }

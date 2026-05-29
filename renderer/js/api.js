@@ -63,6 +63,14 @@ const API = (() => {
   const getArticleList          = (menuId, offset = 0) => post('GetArticleList',       { menu_id: String(menuId), offset: String(offset), limit: '10' });
   const markAllRead             = ()         => post('MarkAllAsRead');
   const deleteComment           = (id)       => post('DeleteDailyMessageComment', { comment_id: String(id) });
+  const getGuideList            = (offset = 0) => post('GetGuideList',   { offset: String(offset), limit: '15', device_type: 'a' });
+  const getGuideDetail          = (guideId)    => post('GetGuideDetail', { guide_id: String(guideId), device_type: 'a' });
+  const addGuideBook            = (guideId, bookingDate, bookingDateId) => post('AddGuideBook', {
+    guide_id:        String(guideId),
+    booking_date:    String(bookingDate),
+    booking_date_id: String(bookingDateId),
+    device_type:     'a',
+  });
 
   return {
     sendOtp, login, guestLogin, checkPhone,
@@ -70,5 +78,6 @@ const API = (() => {
     getKeyPhrases, getQuoteDetail, getMessageDetail, getQuotes, getSurveyList, getSubscriptionContent,
     getBadgeCount, getBundleSubscription, getAllMenu, getMenuPageDetail, getArticleList, markAllRead,
     addDailyMessageRating, deleteComment,
+    getGuideList, getGuideDetail, addGuideBook,
   };
 })();
