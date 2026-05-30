@@ -1,6 +1,18 @@
 // Tab 2 — משפטי מפתח (GetQuoteList)
 const TabArticles = (() => {
 
+  // WooCommerce subscription products for משפטי מפתח (hacara.org.il)
+  const MISHPETEI_URLS = {
+    monthly: 'https://hacara.org.il/product/diuk-mishpetei-mafteach-monthly/', // WC #10066 — ₪24
+    yearly:  'https://hacara.org.il/product/diuk-mishpetei-mafteach-yearly/',  // WC #10067 — ₪240
+  };
+
+  async function openRegisterUrl(url) {
+    const uid = await Store.getUserId();
+    const sep = url.includes('?') ? '&' : '?';
+    window.open(`${url}${sep}diuk_uid=${encodeURIComponent(uid || '')}`);
+  }
+
   async function render(container) {
     container.innerHTML = `
       <div class="list-header">משפטי מפתח</div>
@@ -21,7 +33,15 @@ const TabArticles = (() => {
             <div class="empty-state-icon">🔒</div>
             <div class="empty-state-title">תוכן זה מיועד למנויים בלבד</div>
             <div class="empty-state-msg">רכוש מנוי למשפטי מפתח כדי לגשת לתכנים</div>
+            <div style="margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+              <button class="premium-register-btn articles-register-month">הרשמה לחודש</button>
+              <button class="premium-register-btn articles-register-year">הרשמה לשנה</button>
+            </div>
           </div>`;
+        const mBtn = list.querySelector('.articles-register-month');
+        const yBtn = list.querySelector('.articles-register-year');
+        if (mBtn) mBtn.addEventListener('click', () => openRegisterUrl(MISHPETEI_URLS.monthly));
+        if (yBtn) yBtn.addEventListener('click', () => openRegisterUrl(MISHPETEI_URLS.yearly));
         return;
       }
 

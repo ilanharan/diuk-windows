@@ -37,6 +37,13 @@ const TabPremium = (() => {
     },
   };
 
+  // Price overrides for the מנויים cards — used when the actual WooCommerce charge differs
+  // from the diuk backend's android_product_id_*_price (which the Android app also reads).
+  // Keyed by category id; keeps the backend/Android display untouched.
+  const PRICE_OVERRIDE = {
+    '23': { monthly: '40', yearly: '400' }, // חשיבה הכרתית — WC charges ₪40 / ₪400
+  };
+
   async function render(container) {
     container.innerHTML = `
       <div id="premium-scroll" style="height:100%;overflow-y:auto;">
@@ -109,8 +116,9 @@ const TabPremium = (() => {
       const card       = document.createElement('div');
       card.className   = 'premium-single-card';
       const title      = decodeUnicode(cat.title || '');
-      const priceMonth = cat.android_product_id_monthly_price || '';
-      const priceYear  = cat.android_product_id_yearly_price  || '';
+      const ov         = PRICE_OVERRIDE[String(cat.id)] || {};
+      const priceMonth = ov.monthly || cat.android_product_id_monthly_price || '';
+      const priceYear  = ov.yearly  || cat.android_product_id_yearly_price  || '';
       const imgSrc     = cat.image_url
         ? (cat.image_url.startsWith('http') ? cat.image_url : baseUrl + cat.image_url)
         : CARD_IMAGES[idx % 4];

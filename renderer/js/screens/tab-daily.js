@@ -5,6 +5,23 @@ const TabDaily = (() => {
   let page = 1;
   let loading = false;
   let hasMore = true;
+  let isSubscribed = false;   // מסר יומי subscription (backend is_subscribed)
+  let limitReached = false;   // backend is_msg_limit_over — older messages gated behind a subscription
+
+  // WooCommerce subscription products for מסר יומי (hacara.org.il)
+  const MASAR_URLS = {
+    monthly: 'https://hacara.org.il/product/diuk-masar-yomi-monthly/', // WC #10068 — ₪18
+    yearly:  'https://hacara.org.il/product/diuk-masar-yomi-yearly/',  // WC #10069 — ₪180
+  };
+
+  // gated = user can't see older messages without subscribing
+  const dailyGated = () => !isSubscribed && limitReached;
+
+  async function openRegisterUrl(url) {
+    const uid = await Store.getUserId();
+    const sep = url.includes('?') ? '&' : '?';
+    window.open(`${url}${sep}diuk_uid=${encodeURIComponent(uid || '')}`);
+  }
 
   async function render(container) {
     container.innerHTML = `
@@ -52,9 +69,13 @@ const TabDaily = (() => {
       })();
       if (extracted.length > 0 || (res && res.status == 1)) {
         const newMessages = extracted;
-        hasMore = false; // all 421 loaded at once
+        hasMore = false; // backend returns the allowed window in one call
         messages = [...messages, ...newMessages];
         if (messages.length === 0) { showEmpty(); return; }
+
+        // מסר יומי subscription gating (backend-enforced limit on previous messages)
+        isSubscribed = String(res?.data?.is_subscribed)    === '1';
+        limitReached = String(res?.data?.is_msg_limit_over) === '1';
 
         // Jump to today's message using position_id from server
         const positionId = res && res.data && res.data.position_id;
@@ -400,6 +421,11 @@ const TabDaily = (() => {
 
   function navigate(dir) {
     const newIndex = currentIndex + dir;
+    // Trying to go older than the allowed window → subscription wall (non-subscribers)
+    if (dir > 0 && newIndex >= messages.length) {
+      if (dailyGated()) showDailySubWall();
+      return;
+    }
     if (newIndex < 0 || newIndex >= messages.length) return;
     goTo(newIndex, true);
   }
@@ -423,10 +449,38 @@ const TabDaily = (() => {
   function updateNav() {
     const prev = document.getElementById('daily-prev');
     const next = document.getElementById('daily-next');
-    // prev ("הקודמת") = go to older (index+1) — disabled when at oldest
-    if (prev) prev.disabled = currentIndex >= messages.length - 1;
+    const atOldest = currentIndex >= messages.length - 1;
+    // prev ("הקודמת") = go to older (index+1) — disabled at oldest, UNLESS older messages
+    // are gated behind a subscription (then keep it clickable to surface the register wall)
+    if (prev) prev.disabled = atOldest && !dailyGated();
     // next ("הבאה") = go to newer (index-1) — disabled when at today's message (index 0)
     if (next) next.disabled = currentIndex <= 0;
+  }
+
+  function showDailySubWall() {
+    const slider = document.getElementById('daily-slider');
+    if (!slider) return;
+    slider.innerHTML = `
+      <div class="daily-card">
+        <div class="empty-state">
+          <div class="empty-state-icon">🔒</div>
+          <div class="empty-state-title">הגעת למגבלת המסרים</div>
+          <div class="empty-state-msg">רכוש מנוי למסר יומי כדי לצפות במסרים קודמים</div>
+          <div style="margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+            <button class="premium-register-btn daily-register-month">הרשמה לחודש</button>
+            <button class="premium-register-btn daily-register-year">הרשמה לשנה</button>
+          </div>
+        </div>
+      </div>`;
+    const mBtn = slider.querySelector('.daily-register-month');
+    const yBtn = slider.querySelector('.daily-register-year');
+    if (mBtn) mBtn.addEventListener('click', () => openRegisterUrl(MASAR_URLS.monthly));
+    if (yBtn) yBtn.addEventListener('click', () => openRegisterUrl(MASAR_URLS.yearly));
+    // Can't go further back; allow returning to newer messages
+    const prev = document.getElementById('daily-prev');
+    const next = document.getElementById('daily-next');
+    if (prev) prev.disabled = true;
+    if (next) next.disabled = false;
   }
 
   function showEmpty() {
@@ -456,6 +510,7 @@ const TabDaily = (() => {
 
   function reload() {
     messages = []; currentIndex = 0; page = 1; hasMore = true;
+    isSubscribed = false; limitReached = false;
     const container = document.getElementById('tab-daily');
     if (container) render(container);
   }
