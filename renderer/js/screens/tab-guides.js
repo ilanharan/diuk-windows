@@ -351,8 +351,10 @@ const TabGuides = (() => {
   }
   function formatDate(d) {
     if (!d) return '';
+    const dt = new Date(d);
+    if (isNaN(dt.getTime())) return d; // already-formatted (e.g. "30/05/26") — show as-is
     try {
-      return new Date(d).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
+      return dt.toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
     } catch { return d; }
   }
   function escAttr(s) { return String(s).replace(/"/g, '&quot;'); }
