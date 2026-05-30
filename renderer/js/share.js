@@ -19,11 +19,11 @@ const ShareUI = (() => {
   const TYPE_TO_MID = { daily_msg: 1, quote: 2, content_msg: 3, survey: 3 };
 
   function deepLink(item) {
-    const mid    = TYPE_TO_MID[item.type] || 1;
-    const id     = item.id != null ? item.id : '0';
-    const target = `https://app.diuk.co.il/?mid=${mid}&dmsgid=${encodeURIComponent(id)}`;
-    // Firebase Dynamic Link that opens the diuk Android app (or Play Store) on this content
-    return `https://application.diuk.co.il/?link=${encodeURIComponent(target)}&apn=com.diuk.appdiuk`;
+    const mid = TYPE_TO_MID[item.type] || 1;
+    const id  = item.id != null ? item.id : '0';
+    // Landing page (diuk-open) detects the platform: mobile → Firebase dynamic link
+    // (opens the mobile app), desktop → diuk:// (opens the Windows app on this content).
+    return `https://hacara.org.il/diuk-open/?mid=${mid}&dmsgid=${encodeURIComponent(id)}`;
   }
 
   function buildText(item, link) {
