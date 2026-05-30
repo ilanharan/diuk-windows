@@ -16,7 +16,7 @@
   --success:      #27ae60;
   --danger:       #e74c3c;
   --tab-h:        70px;
-  --header-h:     58px;
+  --header-h:     70px;
   --radius:       12px;
   --shadow:       0 2px 12px rgba(0,0,0,0.08);
   --shadow-lg:    0 8px 32px rgba(0,0,0,0.12);
@@ -84,7 +84,7 @@ html, body {
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
-.header-logo { height: 42px; width: auto; object-fit: contain; display: block; }
+.header-logo { height: 56px; width: auto; object-fit: contain; display: block; }
 .header-title {
   font-size: 22px; font-weight: 700;
   color: var(--primary); letter-spacing: 2px;
