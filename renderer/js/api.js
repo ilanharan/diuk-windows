@@ -50,6 +50,9 @@ const API = (() => {
   const getMessageDetail        = (msgId, msgType) => post('GetMessageDetail',         { msg_id: String(msgId), msg_type: String(msgType) });
   const getQuotes               = (offset = 0) => post('GetDailyMessageAllComment',     { offset: String(offset), limit: '10', device_type: 'a' });
   const getSurveyList           = (page = 1) => post('GetSurveyList',                  { page_no: String(page) });
+  const getSurveyDetail         = (id)       => post('GetSurveyDetail',     { id: String(id), survey_id: String(id), offset: '0', limit: '500', device_type: 'a' });
+  const submitSurvey            = (id, questionAnswer) => post('SubmitSurvey', { id: String(id), question_answer: JSON.stringify(questionAnswer), device_type: 'a' });
+  const getSurveyHistoryList    = (id, offset = 0) => post('GetSurveyHistoryList', { id: String(id), survey_id: String(id), offset: String(offset), limit: '25', device_type: 'a' });
   const getSubscriptionContent     = (page = 1)  => post('GetSubscriptionContentInfoList', { page_no: String(page) });
   const getSubscriptionFreeContent = (catId)     => post('GetSubscriptionContent1',        { subscription_cat_id: String(catId), device_type: 'a' });
   const getSubscriptionContentList = (catId, page = 1) => post('GetSubscriptionContentInfoList', { subscription_cat_id: String(catId), page_no: String(page) });
@@ -85,6 +88,7 @@ const API = (() => {
     sendOtp, login, guestLogin, checkPhone,
     getDailyMessages, getDailyMessageComments, addDailyMessageComment,
     getKeyPhrases, getQuoteDetail, getMessageDetail, getQuotes, getSurveyList, getSubscriptionContent,
+    getSurveyDetail, submitSurvey, getSurveyHistoryList,
     getBadgeCount, getBundleSubscription, getAllMenu, getMenuPageDetail, getArticleList, markAllRead,
     addDailyMessageRating, deleteComment,
     getProductList, getContactUsList, getCommunityManagers, updateProfile,

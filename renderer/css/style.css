@@ -798,6 +798,25 @@ input::-ms-clear { display: none; }
   cursor: pointer; white-space: nowrap; transition: opacity 0.15s;
 }
 .premium-register-btn:hover { opacity: 0.85; }
+
+/* מחשבונים (calculators) */
+.guide-btn {
+  flex-shrink: 0; padding: 8px 14px; border-radius: 20px;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; transition: opacity 0.15s;
+  border: 1.5px solid var(--primary); background: #fff; color: var(--primary);
+}
+.guide-btn:hover { opacity: 0.85; }
+.guide-btn-run { color: #fff; border-color: transparent; background: var(--primary); }
+.calc-opt {
+  min-width: 40px; padding: 8px 12px; border-radius: 10px;
+  border: 1.5px solid var(--border); background: #fff; color: var(--text);
+  font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+  transition: all 0.12s;
+}
+.calc-opt:hover { border-color: var(--primary); }
+.calc-opt.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
 .premium-enter-btn {
   flex-shrink: 0; padding: 10px 20px; border-radius: 20px;
   background: var(--success); color: #fff; border: none;
