@@ -61,7 +61,6 @@ const ShareUI = (() => {
       { label: 'וואטסאפ', icon: '🟢', go: () => window.open(`https://wa.me/?text=${enc(text)}`) },
       { label: 'טלגרם',   icon: '✈️', go: () => window.open(`https://t.me/share/url?url=${enc(link)}&text=${enc(subj)}`) },
       { label: 'Gmail',   icon: '📧', go: () => window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${enc(subj)}&body=${enc(text)}`) },
-      { label: 'מייל',    icon: '✉️', go: () => window.open(`mailto:?subject=${enc(subj)}&body=${enc(text)}`) },
       { label: 'העתק קישור', icon: '🔗', go: () => copyLink(link) },
     ];
   }
