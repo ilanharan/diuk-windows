@@ -120,3 +120,7 @@ const ShareUI = (() => {
 
   return { open };
 })();
+
+// expose as window globals (top-level const is not attached to window)
+window.AppShare = AppShare;
+window.ShareUI  = ShareUI;

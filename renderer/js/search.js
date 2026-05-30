@@ -144,3 +144,6 @@ const AppSearch = (() => {
 
   return { open };
 })();
+
+// expose as window global (top-level const is not attached to window)
+window.AppSearch = AppSearch;
