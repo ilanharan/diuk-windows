@@ -25,7 +25,7 @@
     "win": {
       "target": [{ "target": "nsis", "arch": ["x64"] }],
       "icon": "renderer/assets/icon.ico",
-      "artifactName": "Diuk-Setup.exe"
+      "artifactName": "diuk.exe"
     },
     "nsis": {
       "oneClick": false,
