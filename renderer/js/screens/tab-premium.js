@@ -11,16 +11,30 @@ const TabPremium = (() => {
   // WooCommerce product URLs per subscription category ID
   // Key = category id from GetSubscriptionCategory, value = { monthly, yearly }
   const REGISTER_URLS = {
-    '18': { // פרשת השבוע
+    '18': { // פרשת השבוע — monthly WC #10035, yearly WC #10043
       monthly: 'https://hacara.org.il/product/%d7%9e%d7%a0%d7%95%d7%99-%d7%97%d7%95%d7%93%d7%a9%d7%99-%d7%9c%d7%a4%d7%a8%d7%a9%d7%aa-%d7%94%d7%a9%d7%91%d7%95%d7%a2-%d7%91%d7%90%d7%a4%d7%9c%d7%99%d7%a7%d7%a6%d7%99%d7%99%d7%aa-%d7%93%d7%99%d7%95/',
-      yearly:  '',
+      yearly:  'https://hacara.org.il/product/diuk-parashat-yearly/',
     },
-    // Add other subscription IDs here as WooCommerce products are created:
-    // '19': { monthly: '...', yearly: '...' },  // שיעורים בשניים
-    // '20': { monthly: '...', yearly: '...' },  // עדית שלו
-    // '21': { monthly: '...', yearly: '...' },  // שער הזמנים
-    // '22': { monthly: '...', yearly: '...' },  // אילן הרן
-    // '23': { monthly: '...', yearly: '...' },  // חשיבה הכרתית
+    '19': { // שיעור בשניים — WC #10045 / #10047
+      monthly: 'https://hacara.org.il/product/diuk-shiur-bishnaim-monthly/',
+      yearly:  'https://hacara.org.il/product/diuk-shiur-bishnaim-yearly/',
+    },
+    '20': { // עידית שלו - שיעורים — WC #10049 / #10051
+      monthly: 'https://hacara.org.il/product/diuk-idit-shelo-monthly/',
+      yearly:  'https://hacara.org.il/product/diuk-idit-shelo-yearly/',
+    },
+    '21': { // שער הזמנים — WC #10053 / #10055
+      monthly: 'https://hacara.org.il/product/diuk-shaar-hazmanim-monthly/',
+      yearly:  'https://hacara.org.il/product/diuk-shaar-hazmanim-yearly/',
+    },
+    '22': { // אילן הרן - שיעורים — WC #10057 / #10059
+      monthly: 'https://hacara.org.il/product/diuk-ilan-haran-monthly/',
+      yearly:  'https://hacara.org.il/product/diuk-ilan-haran-yearly/',
+    },
+    '23': { // חשיבה הכרתית — WC #10061 / #10063
+      monthly: 'https://hacara.org.il/product/diuk-hashiva-hakaratit-monthly/',
+      yearly:  'https://hacara.org.il/product/diuk-hashiva-hakaratit-yearly/',
+    },
   };
 
   async function render(container) {
