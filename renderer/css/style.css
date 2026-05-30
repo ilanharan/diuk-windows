@@ -39,7 +39,8 @@ html, body {
   position: fixed; inset: 0;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 40px;
-  background: linear-gradient(150deg, var(--primary) 0%, var(--primary-light) 100%);
+  background: linear-gradient(rgba(15,55,75,0.45), rgba(15,55,75,0.65)),
+              url('../images/splash_bridge.jpg') center/cover no-repeat;
   z-index: 9999;
 }
 .splash-title {
@@ -398,7 +399,8 @@ input::-ms-clear { display: none; }
 /* ── Login Screen ─────────────────────────────────────────────────────────── */
 .login-screen {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(150deg, var(--primary) 0%, var(--primary-light) 60%, #2d7dd2 100%);
+  background: linear-gradient(rgba(15,55,75,0.30), rgba(15,55,75,0.45)),
+              url('../images/splash_bridge.jpg') center/cover no-repeat;
   padding: 20px;
 }
 .login-box {
