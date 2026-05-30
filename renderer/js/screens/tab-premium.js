@@ -334,6 +334,7 @@ const TabPremium = (() => {
       function renderItem(idx) {
         const item = items[idx];
         const itemTitle = decodeUnicode(item.title || '');
+        if (window.AppShare) AppShare.setCurrent({ type: 'content_msg', id: item.id, title: itemTitle, desc: item.description });
         const videoUrl  = item.video_url || '';
         const audioUrl  = item.audio_url || '';
 

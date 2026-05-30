@@ -131,6 +131,7 @@ const TabDaily = (() => {
     if (player) bindAudioPlayer(player);
 
     setHeaderDate(msg);
+    if (window.AppShare) AppShare.setCurrent({ type: 'daily_msg', id: msg.id, title: msg.title, desc: msg.description });
     updateDots();
   }
 

@@ -150,6 +150,8 @@ const TabArticles = (() => {
       const videoUrl = detail.video_url   || '';
       const audioUrl = detail.audio_url   || '';
 
+      if (window.AppShare) AppShare.setCurrent({ type: 'quote', id: quoteId, title, desc });
+
       let html = '';
       if (videoUrl) html += `<video controls style="width:100%;border-radius:8px;margin-bottom:16px;" src="${escAttr(videoUrl)}"></video>`;
       if (audioUrl && !videoUrl) html += `<audio controls style="width:100%;margin-bottom:16px;" src="${escAttr(audioUrl)}"></audio>`;

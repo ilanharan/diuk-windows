@@ -1,0 +1,122 @@
+// Global share — tracks the currently displayed content and offers a share window.
+// Screens call AppShare.setCurrent({type, id, title, desc}) when they show content;
+// the header share button shares whatever is current (daily message, subscription
+// content, quote, …). Channels: WhatsApp, Telegram, Email, Facebook, Copy link.
+
+const AppShare = (() => {
+  let _current = null;
+  return {
+    setCurrent(item) { _current = item || null; },
+    clear()          { _current = null; },
+    getCurrent()     { return _current; },
+  };
+})();
+
+const ShareUI = (() => {
+
+  function deepLink(item) {
+    const type = encodeURIComponent(item.type || 'content');
+    const id   = encodeURIComponent(item.id != null ? item.id : '0');
+    return `https://app.diuk.co.il/?mid=${type}&dmsgid=${id}`;
+  }
+
+  function buildText(item, link) {
+    const parts = [];
+    if (item.title) parts.push(stripHtml(item.title));
+    if (item.desc)  parts.push(stripHtml(item.desc));
+    parts.push('צפו בתוכן באפליקציית דיוק:');
+    parts.push(link);
+    return parts.join('\n');
+  }
+
+  function toast(msg) {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = `
+      position:fixed;bottom:32px;left:50%;transform:translateX(-50%);
+      background:rgba(0,0,0,0.85);color:#fff;padding:12px 22px;border-radius:24px;
+      font-size:14px;z-index:4000;box-shadow:0 4px 20px rgba(0,0,0,0.3);`;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 1800);
+  }
+
+  async function copyLink(link) {
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = link; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (_) {}
+      ta.remove();
+    }
+    toast('הקישור הועתק ✓');
+  }
+
+  function channels(item, link, text) {
+    const enc = encodeURIComponent;
+    return [
+      { label: 'וואטסאפ', icon: '🟢', go: () => window.open(`https://wa.me/?text=${enc(text)}`) },
+      { label: 'טלגרם',   icon: '✈️', go: () => window.open(`https://t.me/share/url?url=${enc(link)}&text=${enc(stripHtml(item.title || ''))}`) },
+      { label: 'מייל',    icon: '✉️', go: () => window.open(`mailto:?subject=${enc(stripHtml(item.title || 'דיוק'))}&body=${enc(text)}`) },
+      { label: 'פייסבוק', icon: '📘', go: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${enc(link)}`) },
+      { label: 'העתק קישור', icon: '🔗', go: () => copyLink(link) },
+    ];
+  }
+
+  function open(item) {
+    item = item || AppShare.getCurrent() || { type: 'app', id: '0', title: 'דיוק — חשיבה הכרתית' };
+    const link = deepLink(item);
+    const text = buildText(item, link);
+
+    const existing = document.getElementById('share-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'share-modal';
+    modal.style.cssText = `
+      position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:3500;
+      display:flex;align-items:center;justify-content:center;padding:20px;`;
+
+    const opts = channels(item, link, text);
+    const optsHtml = opts.map((c, i) => `
+      <button class="share-opt" data-i="${i}">
+        <span class="share-opt-icon">${c.icon}</span>
+        <span class="share-opt-label">${escHtml(c.label)}</span>
+      </button>`).join('');
+
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:18px;max-width:440px;width:100%;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.25);">
+        <div style="background:var(--primary);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:17px;font-weight:700;color:#fff;">שיתוף</div>
+          <button id="share-close" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;">✕</button>
+        </div>
+        <div style="padding:18px 20px;direction:rtl;text-align:right;">
+          <div style="font-size:14px;color:var(--text-muted);margin-bottom:14px;">${escHtml(stripHtml(item.title || 'דיוק'))}</div>
+          <div class="share-grid">${optsHtml}</div>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    modal.querySelector('#share-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    modal.querySelectorAll('.share-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const c = opts[parseInt(btn.dataset.i, 10)];
+        c.go();
+        if (c.label !== 'העתק קישור') modal.remove();
+      });
+    });
+  }
+
+  function stripHtml(html) {
+    if (!html) return '';
+    const t = document.createElement('div'); t.innerHTML = html;
+    return (t.textContent || '').trim();
+  }
+  function escHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  return { open };
+})();

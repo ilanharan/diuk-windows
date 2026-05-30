@@ -72,6 +72,8 @@
       </div>
       <div class="header-title">דיוק</div>
       <div class="header-user">
+        <button class="btn-icon" id="search-btn" title="חיפוש">🔍</button>
+        <button class="btn-icon" id="share-btn" title="שיתוף">📤</button>
         <div class="header-avatar" id="avatar-btn">${imgUrl ? `<img src="${escAttr(imgUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.remove();">` : initials}</div>
       </div>
     `;
@@ -82,6 +84,8 @@
     header.querySelector('#menu-btn').addEventListener('click', openDrawer);
     header.querySelector('#refresh-btn').addEventListener('click', () => location.reload());
     header.querySelector('#avatar-btn').addEventListener('click', () => showProfilePopup());
+    header.querySelector('#search-btn').addEventListener('click', () => window.AppSearch && AppSearch.open());
+    header.querySelector('#share-btn').addEventListener('click', () => window.ShareUI && ShareUI.open());
   }
 
   // ── Profile popup ─────────────────────────────────────────────────────────
