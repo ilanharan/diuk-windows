@@ -124,14 +124,32 @@ const TabGuides = (() => {
     return modal;
   }
 
-  // ── דף הסבר ─────────────────────────────────────────────────────────────────
-  function openExplanation(item) {
+  // ── דף הסבר (explanation message — usually a video) ─────────────────────────
+  const IMG_BASE = 'https://app.diuk.co.il/app/assets/images/';
+
+  async function openExplanation(item) {
     const title = decodeUnicode(item.title || '');
-    const desc  = item.description || '';
-    const body  = desc
-      ? `<div style="font-size:15px;line-height:1.8;">${desc}</div>`
-      : `<div style="color:#888;">אין דף הסבר למחשבון זה.</div>`;
-    openModal(title, body);
+    const modal = openModal(title, `<div class="loading-state"><div class="spinner" style="border-top-color:var(--accent);"></div></div>`);
+    const body  = modal.querySelector('#guide-modal-body');
+    try {
+      const res    = await API.getMessageDetail(item.id, 'survey_explanation_msg');
+      const detail = (res && res.data && (res.data.detail || (res.data.list && res.data.list[0]))) || {};
+      const video  = detail.video_url && String(detail.video_url).trim();
+      const audio  = detail.audio_url && String(detail.audio_url).trim();
+      const desc   = detail.description || item.description || '';
+      const img    = detail.img_name ? IMG_BASE + detail.img_name : '';
+
+      let html = '';
+      if (video)      html += `<video controls playsinline preload="metadata" style="width:100%;border-radius:8px;margin-bottom:14px;" src="${escAttr(video)}"></video>`;
+      else if (audio) html += `<audio controls style="width:100%;margin-bottom:14px;" src="${escAttr(audio)}"></audio>`;
+      if (img)  html += `<img src="${escAttr(img)}" alt="" style="width:100%;border-radius:8px;margin-bottom:14px;" onerror="this.style.display='none'">`;
+      if (desc) html += `<div style="font-size:15px;line-height:1.8;">${desc}</div>`;
+      if (!html) html = `<div style="color:#888;">אין דף הסבר למחשבון זה.</div>`;
+      body.innerHTML = html;
+    } catch (err) {
+      console.error('openExplanation:', err);
+      body.innerHTML = `<div style="color:#c00;">שגיאה בטעינת דף ההסבר.</div>`;
+    }
   }
 
   // ── הפעלת מחשבון ────────────────────────────────────────────────────────────
