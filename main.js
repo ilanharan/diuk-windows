@@ -69,7 +69,10 @@ function apiPost(params) {
       headers:  {
         'Content-Type':    'application/x-www-form-urlencoded',
         'Content-Length':  Buffer.byteLength(body),
-        'User-Agent':      'DiukApp/37.0 Windows',
+        // Browser-like UA: the diuk server's openresty WAF returns 415 to non-browser
+        // User-Agents (the old 'DiukApp/...' was blocked). Keep this looking like a browser.
+        'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+        'Accept':          '*/*',
         'Accept-Encoding': 'gzip, deflate',
       },
     }, (res) => {
