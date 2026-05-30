@@ -305,7 +305,7 @@ const TabPremium = (() => {
       <div class="menu-page-header">
         <button class="btn-icon" id="subc-back">✕</button>
         <div class="menu-page-title">${escHtml(title)}</div>
-        <div style="width:40px;"></div>
+        <button class="btn-icon" id="subc-share" title="שיתוף">📤</button>
       </div>
       <div class="menu-page-body" id="subc-body">
         <div style="display:flex;justify-content:center;padding:60px 0;">
@@ -315,6 +315,7 @@ const TabPremium = (() => {
     `;
     document.body.appendChild(screen);
     screen.querySelector('#subc-back').addEventListener('click', () => screen.remove());
+    screen.querySelector('#subc-share').addEventListener('click', () => window.ShareUI && ShareUI.open());
 
     const body = screen.querySelector('#subc-body');
     try {

@@ -119,7 +119,10 @@ const TabArticles = (() => {
       <div style="background:#fff;border-radius:16px;max-width:700px;width:100%;margin:auto;overflow:hidden;box-shadow:var(--shadow-lg)">
         <div style="background:var(--primary);padding:18px 20px;display:flex;align-items:center;justify-content:space-between;">
           <div style="font-size:18px;font-weight:700;color:#fff">${escHtml(title)}</div>
-          <button id="content-modal-close" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button id="content-modal-share" title="שיתוף" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;padding:0 4px">📤</button>
+            <button id="content-modal-close" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+          </div>
         </div>
         <div id="content-modal-body" style="padding:24px;direction:rtl;text-align:right;min-height:80px;display:flex;align-items:center;justify-content:center;">
           <div style="color:#888;font-size:14px;">טוען...</div>
@@ -129,6 +132,8 @@ const TabArticles = (() => {
     document.body.appendChild(modal);
 
     modal.querySelector('#content-modal-close').addEventListener('click', () => modal.remove());
+    const _shareBtn = modal.querySelector('#content-modal-share');
+    if (_shareBtn) _shareBtn.addEventListener('click', () => window.ShareUI && ShareUI.open());
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 
     try {
