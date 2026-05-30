@@ -800,6 +800,10 @@ input::-ms-clear { display: none; }
 .premium-register-btn:hover { opacity: 0.85; }
 
 /* מחשבונים (calculators) */
+.guide-card-image {
+  width: 56px; height: 56px; border-radius: 10px;
+  object-fit: cover; flex-shrink: 0;
+}
 .guide-btn {
   flex-shrink: 0; padding: 8px 14px; border-radius: 20px;
   font-family: inherit; font-size: 13px; font-weight: 600;

@@ -80,10 +80,12 @@ const TabGuides = (() => {
     const color = item.button_color || 'var(--primary)';
 
     el.innerHTML = `
-      ${img ? `<img class="card-image" src="${escAttr(img)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''}
       <div class="card-body">
-        <div class="card-title">${escHtml(title)}</div>
-        ${desc ? `<div class="card-excerpt">${escHtml(desc.substring(0,160))}${desc.length>160?'...':''}</div>` : ''}
+        <div style="display:flex;align-items:center;gap:12px;">
+          ${img ? `<img class="guide-card-image" src="${escAttr(img)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''}
+          <div class="card-title" style="margin:0;flex:1;">${escHtml(title)}</div>
+        </div>
+        ${desc ? `<div class="card-excerpt" style="margin-top:8px;">${escHtml(desc.substring(0,160))}${desc.length>160?'...':''}</div>` : ''}
         <div class="guide-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
           <button class="guide-btn guide-btn-info">דף הסבר</button>
           <button class="guide-btn guide-btn-run" style="background:${escAttr(color)};">הפעלת מחשבון</button>
