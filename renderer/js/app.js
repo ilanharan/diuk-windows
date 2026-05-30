@@ -1077,12 +1077,31 @@
       if (!file) return;
       const reader = new FileReader();
       reader.onload = ev => {
-        pendingImageDataUrl = ev.target.result;
-        const img  = modal.querySelector('#profile-avatar-img');
-        const init = modal.querySelector('#profile-avatar-init');
-        img.src = pendingImageDataUrl;
-        img.style.display = '';
-        init.style.display = 'none';
+        // Downscale + square-crop to a small thumbnail so the stored data URL is
+        // tiny (~20KB) and persists reliably (a full-res data URL can be several MB
+        // and fails to save). 256px JPEG is plenty for the avatar.
+        const tmp = new Image();
+        tmp.onload = () => {
+          const SIZE = 256;
+          const canvas = document.createElement('canvas');
+          canvas.width = SIZE; canvas.height = SIZE;
+          const ctx = canvas.getContext('2d');
+          const min = Math.min(tmp.width, tmp.height);
+          const sx  = (tmp.width  - min) / 2;
+          const sy  = (tmp.height - min) / 2;
+          ctx.drawImage(tmp, sx, sy, min, min, 0, 0, SIZE, SIZE);
+          pendingImageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          const img  = modal.querySelector('#profile-avatar-img');
+          const init = modal.querySelector('#profile-avatar-init');
+          img.src = pendingImageDataUrl;
+          img.style.display = '';
+          init.style.display = 'none';
+        };
+        tmp.onerror = () => {
+          // fallback: store the raw data URL if the image can't be decoded
+          pendingImageDataUrl = ev.target.result;
+        };
+        tmp.src = ev.target.result;
       };
       reader.readAsDataURL(file);
     });
