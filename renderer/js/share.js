@@ -14,19 +14,20 @@ const AppShare = (() => {
 
 const ShareUI = (() => {
 
+  // content-type -> Android deepLinkType (mid): daily=1, content_msg=3, quote/survey=4
+  const TYPE_TO_MID = { daily_msg: 1, content_msg: 3, quote: 4, survey: 4 };
+
   function deepLink(item) {
-    const type = encodeURIComponent(item.type || 'content');
-    const id   = encodeURIComponent(item.id != null ? item.id : '0');
-    return `https://app.diuk.co.il/?mid=${type}&dmsgid=${id}`;
+    const mid    = TYPE_TO_MID[item.type] || 1;
+    const id     = item.id != null ? item.id : '0';
+    const target = `https://app.diuk.co.il/?mid=${mid}&dmsgid=${encodeURIComponent(id)}`;
+    // Firebase Dynamic Link that opens the diuk Android app (or Play Store) on this content
+    return `https://application.diuk.co.il/?link=${encodeURIComponent(target)}&apn=com.diuk.appdiuk`;
   }
 
   function buildText(item, link) {
-    const parts = [];
-    if (item.title) parts.push(stripHtml(item.title));
-    if (item.desc)  parts.push(stripHtml(item.desc));
-    parts.push('צפו בתוכן באפליקציית דיוק:');
-    parts.push(link);
-    return parts.join('\n');
+    const title = stripHtml(item.title || 'דיוק');
+    return `${title}\n\nלצפייה בתוכן באפליקציית דיוק:\n${link}`;
   }
 
   function toast(msg) {
@@ -54,12 +55,13 @@ const ShareUI = (() => {
   }
 
   function channels(item, link, text) {
-    const enc = encodeURIComponent;
+    const enc  = encodeURIComponent;
+    const subj = stripHtml(item.title || 'דיוק');
     return [
       { label: 'וואטסאפ', icon: '🟢', go: () => window.open(`https://wa.me/?text=${enc(text)}`) },
-      { label: 'טלגרם',   icon: '✈️', go: () => window.open(`https://t.me/share/url?url=${enc(link)}&text=${enc(stripHtml(item.title || ''))}`) },
-      { label: 'מייל',    icon: '✉️', go: () => window.open(`mailto:?subject=${enc(stripHtml(item.title || 'דיוק'))}&body=${enc(text)}`) },
-      { label: 'פייסבוק', icon: '📘', go: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${enc(link)}`) },
+      { label: 'טלגרם',   icon: '✈️', go: () => window.open(`https://t.me/share/url?url=${enc(link)}&text=${enc(subj)}`) },
+      { label: 'Gmail',   icon: '📧', go: () => window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${enc(subj)}&body=${enc(text)}`) },
+      { label: 'מייל',    icon: '✉️', go: () => window.open(`mailto:?subject=${enc(subj)}&body=${enc(text)}`) },
       { label: 'העתק קישור', icon: '🔗', go: () => copyLink(link) },
     ];
   }
