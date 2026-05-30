@@ -30,9 +30,7 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "installerLanguages": ["he", "en"],
-      "language": "1037"
+      "createDesktopShortcut": true
     },
     "files": [
       "main.js",
