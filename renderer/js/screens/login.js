@@ -149,6 +149,13 @@ const LoginScreen = (() => {
         profile.profile_image_url = res.data.base_url + res.data.profile_image_url;
       }
       await Store.saveUser(profile);
+      // preserve onboarding-relevant fields from the backend so an existing
+      // (already-registered) user isn't sent through onboarding again
+      const sexMap = { M: 'male', F: 'female' };
+      const sx = profile.sex || profile.gender;
+      if (sx) await Store.set('user_gender', sexMap[sx] || sx);
+      if (profile.community_manager_id)     await Store.set('settings_community_manager_id', String(profile.community_manager_id));
+      if (profile.daily_msg_assign_time_id) await Store.set('settings_daily_time_id', String(profile.daily_msg_assign_time_id));
       _onSuccess && _onSuccess(profile);
     } else {
       const msg = (res && res.msg) ? res.msg : 'שגיאה בהתחברות';

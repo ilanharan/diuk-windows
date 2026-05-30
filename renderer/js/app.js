@@ -191,7 +191,7 @@
 
     // Force phone login — guests must log in properly to see content
     if (loggedIn && !isGuest) {
-      await showMainApp();
+      await enterApp();
     } else {
       await Store.clearUser(); // clear any stale guest session
       showLoginScreen();
@@ -202,8 +202,28 @@
     screenLogin.classList.remove('hidden');
     LoginScreen.render(screenLogin, async (profile) => {
       screenLogin.classList.add('hidden');
-      await showMainApp();
+      await enterApp();
     });
+  }
+
+  // A registered user must have a complete profile + a community manager + a daily-msg time
+  async function isProfileComplete() {
+    const [name, email, gender, mgr, time] = await Promise.all([
+      Store.getUserName(),
+      Store.get('user_email', ''),
+      Store.get('user_gender', ''),
+      Store.get('settings_community_manager_id', ''),
+      Store.get('settings_daily_time_id', ''),
+    ]);
+    return !!(name && email && gender && mgr && time);
+  }
+
+  // Gate entry on a complete profile — new users must finish onboarding first
+  async function enterApp() {
+    if (window.Onboarding && !(await isProfileComplete())) {
+      await Onboarding.run();
+    }
+    await showMainApp();
   }
 
   async function showMainApp() {

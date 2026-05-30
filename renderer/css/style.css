@@ -873,6 +873,31 @@ input::-ms-clear { display: none; }
 .search-result-desc { font-size: 13px; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
 .search-result-date { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
 
+/* ── Onboarding (mandatory new-user setup) ────────────────────────────────── */
+.onboarding-screen {
+  position: fixed; inset: 0; z-index: 4000; overflow-y: auto;
+  background: linear-gradient(rgba(15,55,75,0.35), rgba(15,55,75,0.55)),
+              url('../images/splash_bridge.jpg') center/cover no-repeat fixed;
+  display: flex; align-items: flex-start; justify-content: center; padding: 28px 16px;
+}
+.onboarding-card {
+  background: #fff; border-radius: 20px; width: 100%; max-width: 440px; margin: auto;
+  padding: 28px 26px; box-shadow: var(--shadow-lg);
+  display: flex; flex-direction: column; gap: 14px;
+}
+.onboarding-logo { height: 54px; width: auto; object-fit: contain; align-self: center; }
+.onboarding-title { font-size: 22px; font-weight: 700; color: var(--primary); text-align: center; }
+.onboarding-sub { font-size: 14px; color: var(--text-muted); text-align: center; margin-top: -8px; }
+.onboarding-avatar-wrap {
+  width: 84px; height: 84px; border-radius: 50%; align-self: center; cursor: pointer;
+  background: var(--bg-input); border: 2px dashed var(--border); overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.onboarding-avatar-wrap #ob-avatar-img { width: 100%; height: 100%; object-fit: cover; display: none; }
+.onboarding-avatar-wrap #ob-avatar-init { font-size: 30px; }
+.ob-field { display: flex; flex-direction: column; gap: 6px; }
+.ob-field select.input-field { cursor: pointer; }
+
 .premium-enter-btn {
   flex-shrink: 0; padding: 10px 20px; border-radius: 20px;
   background: var(--success); color: #fff; border: none;
