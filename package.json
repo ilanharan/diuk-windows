@@ -37,6 +37,9 @@
       "main.js",
       "preload.js",
       "renderer/**/*"
+    ],
+    "protocols": [
+      { "name": "Diuk Protocol", "schemes": ["diuk"] }
     ]
   }
 }
