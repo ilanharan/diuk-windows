@@ -6,6 +6,18 @@ const TabGuides = (() => {
   let hasMore = true;
   let allItems = [];
 
+  // WooCommerce subscription products for מחשבונים (hacara.org.il) — unlocks תוצאות קודמות
+  const CALC_URLS = {
+    monthly: 'https://hacara.org.il/product/diuk-calculators-monthly/', // WC #10082 — ₪32
+    yearly:  'https://hacara.org.il/product/diuk-calculators-yearly/',  // WC #10083 — ₪320
+  };
+
+  async function openRegisterUrl(url) {
+    const uid = await Store.getUserId();
+    const sep = url.includes('?') ? '&' : '?';
+    window.open(`${url}${sep}diuk_uid=${encodeURIComponent(uid || '')}`);
+  }
+
   async function render(container) {
     container.innerHTML = `
       <div class="list-header">מחשבונים</div>
@@ -158,6 +170,21 @@ const TabGuides = (() => {
     const modal = openModal(title, `<div class="loading-state"><div class="spinner" style="border-top-color:var(--accent);"></div></div>`);
     const body  = modal.querySelector('#guide-modal-body');
 
+    // Cooldown — the backend limits how often a calculator can be submitted (e.g. once / 30 days)
+    if (String(item.is_valid_submit_survey) === '0') {
+      const days = parseInt(item.next_user_survey_submit_diff_days || '0', 10);
+      const when = days > 0
+        ? `ניתן לחשב שוב בעוד ${days} ${days === 1 ? 'יום' : 'ימים'}`
+        : 'ניתן יהיה לחשב שוב מאוחר יותר';
+      body.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">⏳</div>
+          <div class="empty-state-title">כבר ביצעת חישוב לאחרונה</div>
+          <div class="empty-state-msg">${escHtml(when)}</div>
+        </div>`;
+      return;
+    }
+
     try {
       const res = await API.getSurveyDetail(item.id);
       const questions = (res && res.data && res.data.list) || [];
@@ -214,10 +241,25 @@ const TabGuides = (() => {
           const payload = questions.map(q => ({ question_id: String(q.id), ans: String(answers[q.id]) }));
           const sres = await API.submitSurvey(item.id, payload);
           const data  = (sres && sres.data) || {};
+          const ok    = sres && (sres.status === 1 || sres.status === '1');
           const score = data.total_score ?? data.score;
-          const label = data.msg2 || 'התוצאה שלך';
-          const note  = data.msg || data.msg1 || '';
-          showResult(body, label, score, note);
+
+          if (!ok || score === undefined || score === null) {
+            // cooldown or other backend message (e.g. "ניתן להגיש שוב בעוד X ימים")
+            const note = data.msg || (sres && sres.msg) || 'לא ניתן לחשב כעת.';
+            body.innerHTML = `
+              <div class="empty-state">
+                <div class="empty-state-icon">⏳</div>
+                <div class="empty-state-title">לא ניתן לחשב כעת</div>
+                <div class="empty-state-msg">${escHtml(stripHtml(note))}</div>
+                <button id="calc-done" class="btn btn-primary" style="margin-top:20px;">סגור</button>
+              </div>`;
+            const done = body.querySelector('#calc-done');
+            if (done) done.addEventListener('click', () => { const m = document.getElementById('guide-modal'); if (m) m.remove(); });
+            return;
+          }
+
+          showResult(body, data.msg2 || 'התוצאה שלך', score, data.msg || data.msg1 || '');
         } catch (e) {
           errEl.textContent = 'שגיאה בשליחת המחשבון. נסה שוב.';
           errEl.style.display = 'block';
@@ -262,8 +304,16 @@ const TabGuides = (() => {
           <div class="empty-state">
             <div class="empty-state-icon">🔒</div>
             <div class="empty-state-title">תוצאות קודמות זמינות למנויים</div>
-            <div class="empty-state-msg">היסטוריית התוצאות שלך נשמרת עבור מנויים</div>
+            <div class="empty-state-msg">רכוש מנוי למחשבונים כדי לשמור ולצפות בהיסטוריית התוצאות שלך</div>
+            <div style="margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+              <button class="premium-register-btn calc-register-month">הרשמה לחודש</button>
+              <button class="premium-register-btn calc-register-year">הרשמה לשנה</button>
+            </div>
           </div>`;
+        const mBtn = body.querySelector('.calc-register-month');
+        const yBtn = body.querySelector('.calc-register-year');
+        if (mBtn) mBtn.addEventListener('click', () => openRegisterUrl(CALC_URLS.monthly));
+        if (yBtn) yBtn.addEventListener('click', () => openRegisterUrl(CALC_URLS.yearly));
         return;
       }
 
