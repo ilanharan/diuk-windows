@@ -94,7 +94,7 @@
         <button class="btn-icon" id="refresh-btn" title="רענן">↻</button>
         <div id="header-date" class="header-date"></div>
       </div>
-      <div class="header-title">דיוק</div>
+      <img class="header-logo" src="images/logo-diuk.png" alt="דיוק">
       <div class="header-user">
         <button class="btn-icon" id="search-btn" title="חיפוש">🔍</button>
         <button class="btn-icon" id="share-btn" title="שיתוף">📤</button>
