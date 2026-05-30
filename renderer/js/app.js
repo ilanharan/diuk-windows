@@ -9,6 +9,30 @@
   let renderedTabs = new Set();
   window._appRenderedTabs = renderedTabs; // allow other modules to mark tabs stale
 
+  // ── Deep links (diuk://content?mid=..&dmsgid=..) ────────────────────────────
+  let _pendingDeepLink = null;
+  if (window.diukDeepLink) window.diukDeepLink.on(handleDeepLink);
+
+  function parseDeepLink(url) {
+    let mid, dmsgid;
+    try { const u = new URL(url); mid = u.searchParams.get('mid'); dmsgid = u.searchParams.get('dmsgid'); }
+    catch { return null; }
+    if (!dmsgid || dmsgid === '0') return null;
+    const MAP = { '1': 'daily_msg', '2': 'quote', '3': 'content_msg' };
+    return { type: MAP[String(mid)] || 'daily_msg', id: String(dmsgid) };
+  }
+  function flushPendingDeepLink() {
+    const t = _pendingDeepLink; _pendingDeepLink = null;
+    if (t && window.AppSearch && AppSearch.openContent) AppSearch.openContent(t.type, t.id, '');
+  }
+  function handleDeepLink(url) {
+    const t = parseDeepLink(url);
+    if (!t) return;
+    _pendingDeepLink = t;
+    // open now if the main app is already visible; otherwise boot()/login flush it
+    if (!screenMain.classList.contains('hidden')) flushPendingDeepLink();
+  }
+
   // ── Tab routing ───────────────────────────────────────────────────────────
   const TAB_MODULES = {
     daily:    TabDaily,
@@ -189,6 +213,8 @@
     showTab('daily');
     setTimeout(pollBadges, 2000);
     setInterval(pollBadges, 5 * 60 * 1000);
+    // open a content deep link that arrived before login / before the app was ready
+    setTimeout(flushPendingDeepLink, 500);
   }
 
   // ── Side Drawer ───────────────────────────────────────────────────────────

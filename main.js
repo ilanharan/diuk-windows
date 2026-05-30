@@ -8,6 +8,7 @@ const Store = require('electron-store');
 
 const store = new Store({ name: 'diuk-data' });
 let mainWindow;
+let pendingDeepLink = null; // a diuk:// url received before the renderer is ready
 let localServer;
 let serverPort;
 
@@ -197,6 +198,14 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => mainWindow.show());
   mainWindow.loadURL(`http://127.0.0.1:${serverPort}/index.html`);
 
+  // once the renderer is loaded, deliver any deep link that arrived earlier
+  mainWindow.webContents.on('did-finish-load', () => {
+    if (pendingDeepLink) {
+      mainWindow.webContents.send('deep-link', pendingDeepLink);
+      pendingDeepLink = null;
+    }
+  });
+
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
@@ -207,13 +216,51 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(async () => {
-  await startLocalServer();
-  createWindow();
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+// ── Deep linking (diuk:// custom protocol) ───────────────────────────────────
+function extractDeepLink(argv) {
+  return (argv || []).find(a => typeof a === 'string' && a.startsWith('diuk://')) || null;
+}
+function dispatchDeepLink(url) {
+  if (!url) return;
+  if (mainWindow && mainWindow.webContents && !mainWindow.webContents.isLoading()) {
+    mainWindow.webContents.send('deep-link', url);
+  } else {
+    pendingDeepLink = url; // flushed on did-finish-load
+  }
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  }
+}
+
+// register this app as the handler for diuk:// links
+if (process.defaultApp) {
+  // dev: `electron .` needs the script path passed so Windows can relaunch us
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient('diuk', process.execPath, [path.resolve(process.argv[1])]);
+  }
+} else {
+  app.setAsDefaultProtocolClient('diuk');
+}
+
+// single instance: a second click should focus the running window with the new link
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (_e, argv) => dispatchDeepLink(extractDeepLink(argv)));
+  app.on('open-url', (e, url) => { e.preventDefault(); dispatchDeepLink(url); }); // macOS
+
+  app.whenReady().then(async () => {
+    await startLocalServer();
+    pendingDeepLink = extractDeepLink(process.argv) || pendingDeepLink; // cold-start link
+    createWindow();
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
   });
-});
+}
 
 app.on('window-all-closed', () => {
   if (localServer) localServer.close();

@@ -14,8 +14,9 @@ const AppShare = (() => {
 
 const ShareUI = (() => {
 
-  // content-type -> Android deepLinkType (mid): daily=1, content_msg=3, quote/survey=4
-  const TYPE_TO_MID = { daily_msg: 1, content_msg: 3, quote: 4, survey: 4 };
+  // content-type -> deepLinkType (mid), matching the mobile app's deep-link parser:
+  // 1 = daily message, 2 = quote (משפטי מפתח), 3 = subscription content
+  const TYPE_TO_MID = { daily_msg: 1, quote: 2, content_msg: 3, survey: 3 };
 
   function deepLink(item) {
     const mid    = TYPE_TO_MID[item.type] || 1;

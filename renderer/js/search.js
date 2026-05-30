@@ -79,19 +79,27 @@ const AppSearch = (() => {
   }
 
   async function openResult(item) {
-    const title = decodeUnicode(item.title || '');
-    const modal = makeModal(title);
+    return openContent(item.msg_type, item.id, item.title, item.msg_desc);
+  }
+
+  // Open any content by type + id (used by search results AND incoming deep links).
+  async function openContent(type, id, fallbackTitle, fallbackDesc) {
+    const title = decodeUnicode(fallbackTitle || '');
+    const modal = makeModal(title || 'תוכן');
     const body  = modal.querySelector('#search-modal-body');
     try {
-      const res    = await API.getMessageDetail(item.id, item.msg_type);
+      const res    = await API.getMessageDetail(id, type);
       const detail = (res && res.data && (res.data.detail || (res.data.list && res.data.list[0]))) || {};
       const video  = detail.video_url && String(detail.video_url).trim();
       const audio  = detail.audio_url && String(detail.audio_url).trim();
-      const desc   = detail.description || item.msg_desc || '';
+      const desc   = detail.description || fallbackDesc || '';
       const img    = detail.img_name ? IMG_BASE + detail.img_name : '';
+      const realTitle = decodeUnicode(detail.title || title);
+      const tEl = modal.querySelector('.search-modal-title');
+      if (tEl && realTitle) tEl.textContent = realTitle;
 
       // make this the shareable "current content"
-      if (window.AppShare) AppShare.setCurrent({ type: item.msg_type, id: item.id, title, desc: stripHtml(desc) });
+      if (window.AppShare) AppShare.setCurrent({ type, id, title: realTitle, desc: stripHtml(desc) });
 
       let html = '';
       if (video)      html += `<video controls playsinline preload="metadata" style="width:100%;border-radius:8px;margin-bottom:14px;" src="${escAttr(video)}"></video>`;
@@ -113,7 +121,7 @@ const AppSearch = (() => {
     modal.innerHTML = `
       <div style="background:#fff;border-radius:16px;max-width:680px;width:100%;margin:auto;overflow:hidden;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;max-height:92vh;">
         <div style="background:var(--primary);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-          <div style="font-size:18px;font-weight:700;color:#fff;">${escHtml(title)}</div>
+          <div class="search-modal-title" style="font-size:18px;font-weight:700;color:#fff;">${escHtml(title)}</div>
           <div style="display:flex;gap:6px;">
             <button id="search-modal-share" title="שיתוף" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;">↗</button>
             <button id="search-modal-close" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;">✕</button>
@@ -142,7 +150,7 @@ const AppSearch = (() => {
   function escAttr(s) { return String(s).replace(/"/g, '&quot;'); }
   function escHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
-  return { open };
+  return { open, openContent };
 })();
 
 // expose as window global (top-level const is not attached to window)

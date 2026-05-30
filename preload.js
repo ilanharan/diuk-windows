@@ -13,3 +13,8 @@ contextBridge.exposeInMainWorld('diukAPI', {
   post: (action, extra, token, uid, udidDevice) =>
     ipcRenderer.invoke('api:post', action, extra, token, uid, udidDevice),
 });
+
+// deep links (diuk://content?mid=..&dmsgid=..) delivered from the main process
+contextBridge.exposeInMainWorld('diukDeepLink', {
+  on: (callback) => ipcRenderer.on('deep-link', (_e, url) => callback(url)),
+});
