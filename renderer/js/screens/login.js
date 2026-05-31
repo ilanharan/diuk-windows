@@ -145,8 +145,15 @@ const LoginScreen = (() => {
   async function handleLoginResponse(res) {
     if (res && (res.status === '1' || res.status === 1) && res.data && res.data.profile) {
       const profile = res.data.profile;
-      if (res.data.base_url && res.data.profile_image_url) {
-        profile.profile_image_url = res.data.base_url + res.data.profile_image_url;
+      // The login response carries base_url + profile_image_url (a DIRECTORY,
+      // e.g. "assets/images/profile/") at the TOP LEVEL of res — NOT under
+      // res.data — and profile.profile_image is the filename. Build the full
+      // avatar URL only when this user actually has an image on file.
+      const imgFile = profile.profile_image || '';
+      if (imgFile) {
+        profile.profile_image_url = imgFile.startsWith('http')
+          ? imgFile
+          : (res.base_url || '') + (res.profile_image_url || '') + imgFile;
       }
       await Store.saveUser(profile);
       // preserve onboarding-relevant fields from the backend so an existing
