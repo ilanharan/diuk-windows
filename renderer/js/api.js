@@ -76,6 +76,21 @@ const API = (() => {
   const getContactUsList        = ()           => post('GetContactUsList',     { device_type: 'a' });
   const getCommunityManagers    = ()           => post('GetCommunityManagers', { device_type: 'a' });
   const updateProfile           = (fields)     => post('UpdateProfile',        { device_type: 'a', ...fields });
+  // UpdateProfile with a profile image — sent as multipart/form-data with a
+  // `profile_image` JPEG file part (matches the Android app). imageBase64 is the
+  // bare base64 (no data: prefix). Returns the parsed response (incl. data.profile).
+  const updateProfileWithImage  = async (fields, imageBase64, fileName) => {
+    const token      = await Store.getToken() || '';
+    const uid        = await Store.getUserId() || '';
+    const udidDevice = await getUdidDevice();
+    const result     = await window.diukAPI.upload('UpdateProfile', { ...fields }, 'profile_image', fileName || 'profile.jpg', imageBase64, token, uid, udidDevice);
+    if (!result.ok) throw new Error(result.error);
+    if (result.data && (result.data.status === 3 || result.data.status === '3')) {
+      await Store.clearUser();
+      location.reload();
+    }
+    return result.data;
+  };
   const getGuideList            = (offset = 0) => post('GetGuideList',   { offset: String(offset), limit: '15', device_type: 'a' });
   const getGuideDetail          = (guideId)    => post('GetGuideDetail', { guide_id: String(guideId), device_type: 'a' });
   const cancelGuideBook         = (bookingId)  => post('CancelGuideBooking', { booking_id: String(bookingId), device_type: 'a' });
@@ -94,7 +109,7 @@ const API = (() => {
     searchAll, getShareLink,
     getBadgeCount, getBundleSubscription, getAllMenu, getMenuPageDetail, getArticleList, markAllRead,
     addDailyMessageRating, deleteComment,
-    getProductList, getContactUsList, getCommunityManagers, updateProfile,
+    getProductList, getContactUsList, getCommunityManagers, updateProfile, updateProfileWithImage,
     getSubscriptionFreeContent, getSubscriptionContentList, getSubscriptionCategory, getMySubscriptionsStatus,
     getGuideList, getGuideDetail, addGuideBook, cancelGuideBook,
   };

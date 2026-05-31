@@ -110,6 +110,81 @@ function apiPost(params) {
   });
 }
 
+// multipart/form-data POST — used for uploads (e.g. UpdateProfile with a
+// profile_image file part). Same browser UA + gzip handling as apiPost.
+function apiUpload({ params, fileField, fileName, fileBuffer, fileType }) {
+  return new Promise((resolve, reject) => {
+    const boundary = '----DiukBoundary' + Date.now().toString(16) + Math.random().toString(16).slice(2);
+    const url = new URL(BASE_URL);
+    const parts = [];
+    Object.keys(params).forEach(k => {
+      parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${k}"\r\n\r\n${params[k]}\r\n`, 'utf8'));
+    });
+    if (fileBuffer && fileField) {
+      parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${fileField}"; filename="${fileName}"\r\nContent-Type: ${fileType || 'application/octet-stream'}\r\n\r\n`, 'utf8'));
+      parts.push(fileBuffer);
+      parts.push(Buffer.from('\r\n', 'utf8'));
+    }
+    parts.push(Buffer.from(`--${boundary}--\r\n`, 'utf8'));
+    const body = Buffer.concat(parts);
+
+    const req = https.request({
+      hostname: url.hostname,
+      path:     url.pathname,
+      method:   'POST',
+      headers:  {
+        'Content-Type':    `multipart/form-data; boundary=${boundary}`,
+        'Content-Length':  body.length,
+        'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+        'Accept':          '*/*',
+        'Accept-Encoding': 'gzip, deflate',
+      },
+    }, (res) => {
+      const chunks = [];
+      res.on('data', chunk => chunks.push(chunk));
+      res.on('end', () => {
+        const raw = Buffer.concat(chunks);
+        function parseJSON(buf) {
+          const str = buf.toString('utf8');
+          try { return resolve(JSON.parse(str)); }
+          catch { reject(new Error('Invalid JSON: ' + str.substring(0, 200))); }
+        }
+        const encoding = (res.headers['content-encoding'] || '').toLowerCase();
+        const isGzip    = encoding.includes('gzip')    || (raw[0] === 0x1f && raw[1] === 0x8b);
+        const isZlib    = encoding.includes('deflate') || raw[0] === 0x78;
+        if (isGzip)      zlib.gunzip(raw,  (err, buf) => err ? reject(err) : parseJSON(buf));
+        else if (isZlib) zlib.inflate(raw, (err, buf) => err ? zlib.inflateRaw(raw, (e2, b2) => e2 ? parseJSON(raw) : parseJSON(b2)) : parseJSON(buf));
+        else             parseJSON(raw);
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
+ipcMain.handle('api:upload', async (_e, action, extra, fileField, fileName, fileBase64, token, uid, udidDevice) => {
+  try {
+    const params = {
+      action,
+      app_token:   APP_TOKEN,
+      app_version: APP_VERSION,
+      device_type: 'a',
+      udid_device: udidDevice || '',
+      udid:        '',
+      token:       token || '',
+      uid:         uid || '',
+      ...extra,
+    };
+    const fileBuffer = fileBase64 ? Buffer.from(fileBase64, 'base64') : null;
+    const result = await apiUpload({ params, fileField, fileName, fileBuffer, fileType: 'image/jpeg' });
+    console.log(`[API] ${action} (upload):`, JSON.stringify(result).substring(0, 300));
+    return { ok: true, data: result };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
 ipcMain.handle('api:post', async (_e, action, extra, token, uid, udidDevice) => {
   try {
     const params = {

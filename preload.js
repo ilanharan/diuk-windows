@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld('diukStore', {
 contextBridge.exposeInMainWorld('diukAPI', {
   post: (action, extra, token, uid, udidDevice) =>
     ipcRenderer.invoke('api:post', action, extra, token, uid, udidDevice),
+  upload: (action, extra, fileField, fileName, fileBase64, token, uid, udidDevice) =>
+    ipcRenderer.invoke('api:upload', action, extra, fileField, fileName, fileBase64, token, uid, udidDevice),
 });
 
 // deep links (diuk://content?mid=..&dmsgid=..) delivered from the main process

@@ -1160,10 +1160,47 @@
       });
     });
 
-    // Save
+    // Save — persist to the server (UpdateProfile) so the photo survives a
+    // user switch / re-login. The image is sent as a multipart profile_image
+    // part; the response carries the stored filename which we turn into the
+    // full avatar URL (base_url + profile_image_url dir + filename).
     modal.querySelector('#profile-modal-save').addEventListener('click', async () => {
+      const saveBtn = modal.querySelector('#profile-modal-save');
+      saveBtn.disabled = true;
+      const origText = saveBtn.textContent;
+      saveBtn.textContent = 'שומר…';
+
       await Store.set('user_gender', selectedGender);
-      if (pendingImageDataUrl) await Store.set('profile_image_url', pendingImageDataUrl);
+      const sex = selectedGender === 'female' ? 'F' : (selectedGender === 'male' ? 'M' : '');
+      const fields = { name, email, sex };
+
+      try {
+        let res;
+        if (pendingImageDataUrl) {
+          const base64 = pendingImageDataUrl.split(',')[1] || '';
+          res = await API.updateProfileWithImage(fields, base64, 'profile.jpg');
+        } else {
+          res = await API.updateProfile(fields);
+        }
+        const profile = res && res.data && res.data.profile;
+        if (res && (res.status === '1' || res.status === 1) && profile) {
+          const imgFile = profile.profile_image || '';
+          if (imgFile) {
+            const full = imgFile.startsWith('http')
+              ? imgFile
+              : (res.base_url || '') + (res.profile_image_url || '') + imgFile;
+            await Store.set('profile_image_url', full);
+            await Store.set('profile_image', imgFile);
+          }
+        } else if (pendingImageDataUrl) {
+          // server didn't confirm — keep the local preview so the UI isn't blank
+          await Store.set('profile_image_url', pendingImageDataUrl);
+        }
+      } catch (e) {
+        console.error('[Profile] save error:', e);
+        if (pendingImageDataUrl) await Store.set('profile_image_url', pendingImageDataUrl);
+      }
+
       modal.remove();
       await refreshHeaderAvatar();
     });

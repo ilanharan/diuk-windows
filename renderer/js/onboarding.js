@@ -121,18 +121,30 @@ const Onboarding = (() => {
 
       const btn = sel('#ob-submit'); btn.disabled = true; btn.textContent = 'שומר...';
       try {
-        await API.updateProfile({
+        const fields = {
           name: nm, email: em,
           sex: selectedGender === 'female' ? 'F' : 'M',
           community_manager_id:    String(mgr),
           daily_msg_assign_time_id: String(tm),
-        });
+        };
+        // upload the photo (multipart) so it persists server-side, like the profile screen
+        const res = pendingImage
+          ? await API.updateProfileWithImage(fields, (pendingImage.split(',')[1] || ''), 'profile.jpg')
+          : await API.updateProfile(fields);
         await Store.set('user_name', nm);
         await Store.set('user_email', em);
         await Store.set('user_gender', selectedGender);
         await Store.set('settings_community_manager_id', String(mgr));
         await Store.set('settings_daily_time_id', String(tm));
-        if (pendingImage) await Store.set('profile_image_url', pendingImage);
+        const profile = res && res.data && res.data.profile;
+        const imgFile = profile && profile.profile_image;
+        if (imgFile) {
+          const full = imgFile.startsWith('http') ? imgFile : (res.base_url || '') + (res.profile_image_url || '') + imgFile;
+          await Store.set('profile_image_url', full);
+          await Store.set('profile_image', imgFile);
+        } else if (pendingImage) {
+          await Store.set('profile_image_url', pendingImage); // fallback to local preview
+        }
         screen.remove();
         resolve();
       } catch (e) {
