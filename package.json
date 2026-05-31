@@ -1,6 +1,6 @@
 {
   "name": "diuk-windows",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Diuk App for Windows",
   "main": "main.js",
   "scripts": {
