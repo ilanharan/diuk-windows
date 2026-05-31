@@ -37,6 +37,27 @@ const TabPremium = (() => {
     },
   };
 
+  // WooCommerce product URLs per bundle (חבילה) id from GetBundleSubscription.
+  // Buying a bundle grants ALL its constituent subscriptions (handled by the bridge plugin).
+  const BUNDLE_URLS = {
+    '1': { // שיעור בשניים + פרשת השבוע + משפטי מפתח — ₪108 / ₪1080
+      monthly: 'https://hacara.org.il/product/diuk-bundle-1-monthly/',
+      yearly:  'https://hacara.org.il/product/diuk-bundle-1-yearly/',
+    },
+    '2': { // שיעור בשניים + פרשת השבוע — ₪88 / ₪880
+      monthly: 'https://hacara.org.il/product/diuk-bundle-2-monthly/',
+      yearly:  'https://hacara.org.il/product/diuk-bundle-2-yearly/',
+    },
+    '3': { // שיעור בשניים + פרשת השבוע + שער הזמנים — ₪114 / ₪1199
+      monthly: 'https://hacara.org.il/product/diuk-bundle-3-monthly/',
+      yearly:  'https://hacara.org.il/product/diuk-bundle-3-yearly/',
+    },
+    '4': { // שיעור בשניים + שער הזמנים + משפטי מפתח — ₪99.90 / ₪999.90
+      monthly: 'https://hacara.org.il/product/diuk-bundle-4-monthly/',
+      yearly:  'https://hacara.org.il/product/diuk-bundle-4-yearly/',
+    },
+  };
+
   // Price overrides for the מנויים cards — used when the actual WooCommerce charge differs
   // from the diuk backend's android_product_id_*_price (which the Android app also reads).
   // Keyed by category id; keeps the backend/Android display untouched.
@@ -236,6 +257,14 @@ const TabPremium = (() => {
         </div>`;
       }).join('');
 
+      const urls = BUNDLE_URLS[String(bundle.id)] || {};
+      const actionsHtml = isSubbed
+        ? ''
+        : `<div class="premium-bundle-actions">
+             ${urls.monthly ? `<button class="premium-register-btn premium-bundle-month">הרשמה לחודש</button>` : ''}
+             ${urls.yearly  ? `<button class="premium-register-btn premium-bundle-year">הרשמה לשנה</button>`  : ''}
+           </div>`;
+
       card.innerHTML = `
         <div class="premium-bundle-header">
           <div class="premium-bundle-title">${escHtml(title)}</div>
@@ -247,7 +276,21 @@ const TabPremium = (() => {
           ${priceMonth ? `<div class="premium-price-box"><div class="premium-price-label">חודשי</div><div class="premium-price-value">₪${escHtml(priceMonth)}</div></div>` : ''}
           ${priceYear  ? `<div class="premium-price-box"><div class="premium-price-label">שנתי</div><div class="premium-price-value">₪${escHtml(priceYear)}</div></div>`  : ''}
         </div>
+        ${actionsHtml}
       `;
+
+      if (!isSubbed) {
+        async function openRegisterUrl(url) {
+          const uid = await Store.getUserId();
+          const sep = url.includes('?') ? '&' : '?';
+          window.open(`${url}${sep}diuk_uid=${encodeURIComponent(uid || '')}`);
+        }
+        const monthBtn = card.querySelector('.premium-bundle-month');
+        const yearBtn  = card.querySelector('.premium-bundle-year');
+        if (monthBtn) monthBtn.addEventListener('click', e => { e.stopPropagation(); openRegisterUrl(urls.monthly); });
+        if (yearBtn)  yearBtn.addEventListener('click',  e => { e.stopPropagation(); openRegisterUrl(urls.yearly); });
+      }
+
       sec.appendChild(card);
     });
   }

@@ -966,6 +966,10 @@ input::-ms-clear { display: none; }
 }
 .premium-price-label { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
 .premium-price-value { font-size: 15px; font-weight: 700; color: var(--primary); }
+.premium-bundle-actions {
+  display: flex; gap: 8px; padding: 0 14px 12px;
+}
+.premium-bundle-actions .premium-register-btn { flex: 1; }
 
 /* ── Contact Us ───────────────────────────────────────────────────────────── */
 .contact-item {
